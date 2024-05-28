@@ -31,13 +31,13 @@ unique_movies['Year Interval'] = (unique_movies['Year'] // 5) * 5
 unique_movies['Year Interval'] = unique_movies['Year Interval'].astype(int)
 
 # Streamlit app
-st.title('Nicolas Cage: A Journey Through Film')
+st.title('Nicolas Cage: A 4 Decade Journey Through Film')
 
 st.image("https://m.media-amazon.com/images/M/MV5BMzY5YTYwODAtZjY4Yi00OGY5LTk0MTAtNWRhNDc1NWQ4ZGI1XkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_QL75_UX500_CR0,0,500,281_.jpg", caption="Nicolas Cage iconic performances")
 
 st.write("""
 Nicolas Cage is one of Hollywood's most enigmatic and versatile actors. 
-With a career spanning decades, he's played a wide range of characters in a variety of genres.""")
+With a career spanning 4 decades, he's played a wide range of characters in a variety of genres.""")
 
 # Ensure 'Year' is a numeric type
 unique_movies['Year'] = pd.to_numeric(unique_movies['Year'], errors='coerce')
@@ -68,26 +68,25 @@ upcoming_movies = df[(df['Year'] >= next_year) & (df['Cast'].str.contains('Nicol
 
 # Construct the paragraph
 summary_paragraph = f"""
-Nicolas Cage is an actor who has performed in a total of {total_movies} movies. His main genre is {top_genre}, having been part of {top_genre_count} movies in this genre. 
+He has performed in a total of {total_movies} movies. His main genre is {top_genre}, having been part of {top_genre_count} movies in this genre. 
 He first appeared in a movie in the year {first_movie_year}, with the title "{first_movie_title}". 
 """
 
 if not upcoming_movies.empty:
-    summary_paragraph += "Here are the movies that are scheduled for 2025 and later:\n\n"
+    summary_paragraph += "Here are his future premiers:\n\n"
     for idx, movie in upcoming_movies.iterrows():
         movie_title = movie['Title']
         movie_year = int(movie['Year'])
         movie_url = movie.get('url', '#')  # Use a placeholder URL if 'url' is not available
         summary_paragraph += f"- [{movie_title}]({movie_url}) ({movie_year})\n"
 else:
-    summary_paragraph += "These are future Nic Cage's premiers:"
+    summary_paragraph += "There are no movies scheduled for 2025 or later."
 
 # Display the paragraph
 st.write(summary_paragraph)
 
-
 # Genre distribution
-st.subheader('From Ka-Boom to Haha')
+st.subheader('From Ka-Boom to Ha-ha')
 st.write("""
 Nicolas Cage has never shied away from experimenting with different genres. 
 From action-packed thrillers to dramatic roles, let's see which genres he has dominated over the years.
@@ -129,7 +128,6 @@ top_rated['Rating'] = top_rated['Rating'].map('{:.1f}'.format)
 
 st.table(top_rated.style.set_properties(**{'text-align': 'center'}))
 
-
 # Ratings distribution
 st.write("""Cage's movies have seen a range of ratings over the years. 
 Let's take a look at how his movies are rated and see the distribution of ratings.
@@ -154,8 +152,6 @@ for i, v in enumerate(rating_counts.values):
     ax.text(i, v + 0.1, str(v), color='black', ha='center')
 
 st.pyplot(fig)
-
-
 
 # Top 3 genres ranked by ratings
 st.subheader('Top 3 Genres Ranked by Ratings')
@@ -249,3 +245,16 @@ for i, (x, y) in enumerate(zip(avg_rating_reviews_by_interval.index, avg_rating_
     ax2.text(i, y, f'{int(y)}', color='red', ha='center')
 
 st.pyplot(fig)
+
+# Summary and Conclusions
+st.subheader('Summary and Conclusions')
+st.write(f"""
+Starting in {first_movie_year} and over the past four decades, Nicolas Cage has showcased his versatility across a wide range of genres in {total_movies} movies. His most dominant genre is {top_genre}, with {top_genre_count} performances. Cage's movies have seen a diverse range of audience and critical receptions, with notable highs in both ratings and review counts.
+
+In conclusion, Nicolas Cage's career is a testament to his ability to adapt and excel captivating audiences and critics alike. As we look forward to his upcoming movies, it's evident that Cage's legacy in the film industry will continue to grow.
+
+Thank you for exploring Nicolas Cage's filmography with us. Stay tuned for more updates and insights!
+""")
+
+# Add a link to the GitHub repository
+st.markdown("[View this project on GitHub](https://github.com/felixamado/MadKudu)")
