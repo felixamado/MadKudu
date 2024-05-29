@@ -54,7 +54,6 @@ def main():
 
     cage_movies = filter_cage_movies(df)
     cage_movies = remove_duplicates(cage_movies)
-    cage_movies = filter_last_n_years(cage_movies, 30)
     cage_movies = create_year_intervals(cage_movies)
 
     st.title('Nicolas Cage: A 4 Decade Journey Through Film')
@@ -62,7 +61,6 @@ def main():
     st.write("Nicolas Cage is one of Hollywood's most enigmatic and versatile actors. With a career spanning 4 decades, he's played a wide range of characters in a variety of genres.")
 
     cage_movies['Year'] = pd.to_numeric(cage_movies['Year'], errors='coerce')
-    cage_movies = filter_last_n_years(cage_movies, 30)
     cage_movies = create_year_intervals(cage_movies)
 
     # Calculate the top genre dynamically
@@ -76,8 +74,8 @@ def main():
     first_movie_year = int(first_movie['Year'])
     first_movie_title = first_movie['Title']
 
-    next_year = 2025
-    upcoming_movies = df[(df['Year'] >= next_year) & (df['Cast'].str.contains('Nicolas Cage', case=False, na=False))]
+    
+    upcoming_movies = df[(df['Year'] >= current_year + 1) & (df['Cast'].str.contains('Nicolas Cage', case=False, na=False))]
 
     summary_paragraph = f"""
     He has performed in a total of {total_movies} movies. His main genre is {top_genre}, having been part of {top_genre_count} movies in this genre. 
@@ -170,9 +168,11 @@ def main():
     st.write("Beyond audience ratings, let's take a look at the critical reception of Nicolas Cage's movies through their Metascores and review counts over 5-year intervals.")
 
     avg_metascore_reviews_by_interval = cage_movies.groupby('Year Interval').agg({'Metascore': 'mean', 'Review Count': 'sum'}).dropna()
+    avg_metascore_reviews_by_interval = avg_metascore_reviews_by_interval.dropna()
+    avg_rating_reviews_by_interval = avg_rating_reviews_by_interval.dropna()
 
-    avg_metascore_reviews_by_interval = avg_metascore_reviews_by_interval[avg_metascore_reviews_by_interval.index >= current_year - 30]
-    avg_metascore_reviews_by_interval = avg_metascore_reviews_by_interval[avg_metascore_reviews_by_interval.index <= current_year]
+    #avg_metascore_reviews_by_interval = avg_metascore_reviews_by_interval[avg_metascore_reviews_by_interval.index >= current_year - 30]
+    #avg_metascore_reviews_by_interval = avg_metascore_reviews_by_interval[avg_metascore_reviews_by_interval.index <= current_year]
 
     fig, ax1 = plt.subplots()
     sns.barplot(x=avg_metascore_reviews_by_interval.index.astype(str), y=avg_metascore_reviews_by_interval['Metascore'], ax=ax1, palette='viridis')
@@ -197,9 +197,11 @@ def main():
 
     top_genre_movies = cage_movies[cage_movies['Genre'] == top_genre]
     avg_rating_reviews_by_interval = top_genre_movies.groupby('Year Interval').agg({'Rating': 'mean', 'Review Count': 'sum'}).dropna()
+    avg_rating_reviews_by_interval = avg_rating_reviews_by_interval.dropna()
 
-    avg_rating_reviews_by_interval = avg_rating_reviews_by_interval[avg_rating_reviews_by_interval.index >= current_year - 30]
-    avg_rating_reviews_by_interval = avg_rating_reviews_by_interval[avg_rating_reviews_by_interval.index <= current_year]
+
+    #avg_rating_reviews_by_interval = avg_rating_reviews_by_interval[avg_rating_reviews_by_interval.index >= current_year - 30]
+    #avg_rating_reviews_by_interval = avg_rating_reviews_by_interval[avg_rating_reviews_by_interval.index <= current_year]
 
     fig, ax1 = plt.subplots()
     sns.barplot(x=avg_rating_reviews_by_interval.index.astype(str), y=avg_rating_reviews_by_interval['Rating'], ax=ax1, palette='viridis')
