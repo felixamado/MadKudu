@@ -36,11 +36,6 @@ def filter_cage_movies(df):
 def remove_duplicates(df):
     return df.drop_duplicates(subset=['Title', 'Year'])
 
-# Filter for the last n years
-def filter_last_n_years(df, n):
-    current_year = pd.to_datetime('now').year
-    return df[(df['Year'] >= current_year - n) & (df['Year'] <= current_year)]
-
 # Create a new column for 5-year intervals
 def create_year_intervals(df):
     df['Year Interval'] = (df['Year'] // 5) * 5
@@ -74,7 +69,6 @@ def main():
     first_movie_year = int(first_movie['Year'])
     first_movie_title = first_movie['Title']
 
-    
     upcoming_movies = df[(df['Year'] >= current_year + 1) & (df['Cast'].str.contains('Nicolas Cage', case=False, na=False))]
 
     summary_paragraph = f"""
@@ -168,11 +162,6 @@ def main():
     st.write("Beyond audience ratings, let's take a look at the critical reception of Nicolas Cage's movies through their Metascores and review counts over 5-year intervals.")
 
     avg_metascore_reviews_by_interval = cage_movies.groupby('Year Interval').agg({'Metascore': 'mean', 'Review Count': 'sum'}).dropna()
-    avg_metascore_reviews_by_interval = avg_metascore_reviews_by_interval.dropna()
-    avg_rating_reviews_by_interval = avg_rating_reviews_by_interval.dropna()
-
-    #avg_metascore_reviews_by_interval = avg_metascore_reviews_by_interval[avg_metascore_reviews_by_interval.index >= current_year - 30]
-    #avg_metascore_reviews_by_interval = avg_metascore_reviews_by_interval[avg_metascore_reviews_by_interval.index <= current_year]
 
     fig, ax1 = plt.subplots()
     sns.barplot(x=avg_metascore_reviews_by_interval.index.astype(str), y=avg_metascore_reviews_by_interval['Metascore'], ax=ax1, palette='viridis')
@@ -197,11 +186,6 @@ def main():
 
     top_genre_movies = cage_movies[cage_movies['Genre'] == top_genre]
     avg_rating_reviews_by_interval = top_genre_movies.groupby('Year Interval').agg({'Rating': 'mean', 'Review Count': 'sum'}).dropna()
-    avg_rating_reviews_by_interval = avg_rating_reviews_by_interval.dropna()
-
-
-    #avg_rating_reviews_by_interval = avg_rating_reviews_by_interval[avg_rating_reviews_by_interval.index >= current_year - 30]
-    #avg_rating_reviews_by_interval = avg_rating_reviews_by_interval[avg_rating_reviews_by_interval.index <= current_year]
 
     fig, ax1 = plt.subplots()
     sns.barplot(x=avg_rating_reviews_by_interval.index.astype(str), y=avg_rating_reviews_by_interval['Rating'], ax=ax1, palette='viridis')
