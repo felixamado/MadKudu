@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-current_year = 2024
+current_year = pd.to_datetime('now').year
 
 # Virtual environment setup instructions
 st.sidebar.title('Setup Instructions')
