@@ -50,7 +50,7 @@ def validate_year(row):
 def validate_years(df):
     validated_years = []
     with ThreadPoolExecutor(max_workers=10) as executor:
-        for result in executor.map(validate_year, df.itertuples(index=False)):
+        for result in executor.map(validate_year, [row for _, row in df.iterrows()]):
             validated_years.append(result)
             st.progress(len(validated_years) / len(df))
     df['Validated Year'] = validated_years
