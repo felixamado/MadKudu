@@ -31,44 +31,85 @@ def clean_data(df):
     df['Review Count'] = pd.to_numeric(df['Review Count'], errors='coerce')
     return df
 
-# Function to validate if Nicolas Cage is in the movie using IMDb
-def validate_cage_in_movie(title):
+# Function to validate movie years using IMDb
+# Function to validate movie years using IMDb
+def validate_year(title, original_year):
     ia = IMDb()
     try:
         movies = ia.search_movie(title)
-        for movie in movies:
-            ia.update(movie)
-            if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
-                return movie
+        if movies:
+            for movie in movies:
+                ia.update(movie)
+                if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
+                    year = movie.get('year')
+                    if year and year != original_year:
+                        return year
     except (IMDbDataAccessError, Exception) as e:
         st.warning(f"Error accessing IMDb for {title}: {e}")
-    return None
+    return original_year
 
-# Function to filter Nicolas Cage movies for a DataFrame
-def filter_cage_movies(df, max_time=250):
-    cage_movies = []
+# Function to validate years for a DataFrame
+def validate_years(df, max_time=250):
+    validated_years = []
     start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
     total = len(df)
     
-    def update_progress():
-        progress_bar.progress(len(cage_movies) / total)
+    def update_progress(result):
+        validated_years.append(result)
+        progress_bar.progress(len(validated_years) / total)
     
     with ThreadPoolExecutor(max_workers=50) as executor:  # Increase max_workers for faster execution
-        futures = {executor.submit(validate_cage_in_movie, row['Title']): row for _, row in df.iterrows()}
-        for future in as_completed(futures):
+        futures = {executor.submit(validate_year, row['Title'], row['Year']): row for _, row in df.iterrows()}
+        for i, future in enumerate(as_completed(futures)):
             if time.time() - start_time > max_time:
-                st.warning("Filtering process stopped due to time constraints. Only movies validated so far will be used.")
+                st.warning("Validation process stopped due to time constraints. Remaining values will use the original data.")
                 break
             try:
                 result = future.result(timeout=0.1)
-                if result:
-                    cage_movies.append(futures[future])
             except (TimeoutError, Exception):
-                continue
-            update_progress()
+                result = None
+            update_progress(result if result is not None else futures[future]['Year'])
 
-    return pd.DataFrame(cage_movies)
+    # Ensure all rows are processed
+    if len(validated_years) < total:
+        validated_years.extend(df['Year'][len(validated_years):])
+
+    df['Validated Year'] = validated_years
+    df['Year'] = df['Validated Year']  # Update Year column with validated years
+    df.drop(columns=['Validated Year'], inplace=True)
+    return df
+
+
+
+
+# Function to display fun facts
+def display_fun_facts():
+    facts = [
+        "He bought two king cobras, and this ended poorly. He was dismayed to find that the snakes kept trying to attack him, and then neighbors complained till he gave them up.",
+        "He came to a fan's defense when Vince Neil attacked her. Attacked her physically, that is. Though, Cage may also have been doing this for Neil's sake.",
+        "Cage chooses his diet based on animals' mating habits. He avoids pork, because he says pigs have dirty sex, but he eats fish and poultry, since fish and birds mate respectably.",
+        "He really wants to do a musical. So we put together some choices for which one would suit him best.",
+        "His healing hands saved a shooting victim. He was riding in an ambulance to prepare for his role as an EMT in Martin Scorsese's Bringing Out the Dead, then things got a little too real.",
+        "He was the first choice to play Aragorn in Lord of the Rings.",
+        "He lost a $100,000 treasure at sea. His fiancée, Lisa Marie Presley, chucked her engagement ring off his yacht, and divers never managed to retrieve it.",
+        "An antiques dealer auctioned off 'proof' Cage is a vampire, for $1 million. This was a Civil War–era photo featuring someone who looked like Cage.",
+        "Nicolas Cage was once bailed out of jail by Dog the Bounty Hunter. Police booked him after a drunken night in New Orleans, but the charges fortunately didn't stick.",
+        "Bad Lieutenant featured a hallucinatory iguana, who bit director Werner Herzog. This was not in the screenplay, and it's debatable just why Herzog included this.",
+        "Cage actually tried to find the Holy Grail. After traveling the world, he concluded that the grail only made sense as a metaphor.",
+        "During the filming of Vampire's Kiss, he ate a cockroach for real.",
+        "His comedy is sometimes intentional, and sometimes very much not. Consider the brilliant intentional comedy of Adaptation, and the also brilliant unintentional comedy of Face/Off.",
+        "He's spent millions (to rehabilitate child soldiers). Not all his vanished money has gone to arcane relics. He's also known for giving a bunch to charity, including $2 million to Amnesty International.",
+        "He crashed a Nicolas Cage film festival. He read Edgar Allan Poe to the audience, unprompted, then stayed to view five of his own movies back-to-back.",
+        "He once did magic mushrooms with his cat. Said Cage, the cat kept raiding the fridge, so he decided they must do shrooms together, resulting in an hours-long shared trip."
+    ]
+
+    fact_placeholder = st.empty()
+
+    for fact in facts:
+        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts: \n\n{fact}")
+        #time.sleep(9)
+        fact_placeholder.empty()
 
 # Function to create year intervals
 def create_year_intervals(df):
@@ -89,11 +130,18 @@ def main():
     df = load_data('imdb-movies-dataset.csv')  # Load the dataset
     df = clean_data(df)  # Clean and normalize the data
 
-    # Filter Nicolas Cage movies
+    # Filter rows where Nicolas Cage is mentioned in the Cast
+    cage_movies = df[df['Cast'].str.contains('Nicolas Cage', case=False, na=False)].copy()
+    
+    # Start the fun facts display in a separate thread
+    fun_facts_thread = threading.Thread(target=display_fun_facts)
+    fun_facts_thread.start()
+
+    # Validate years for Nicolas Cage movies
     start_time = time.time()
-    cage_movies = filter_cage_movies(df, max_time=20)
+    cage_movies = validate_years(cage_movies, max_time=20)
     end_time = time.time()
-    st.success(f'Filtering completed in {end_time - start_time:.2f} seconds.')
+    st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
 
     cage_movies = create_year_intervals(cage_movies)  # Create year intervals
 
