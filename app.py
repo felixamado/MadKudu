@@ -31,7 +31,7 @@ def clean_data(df):
     return df
 
 # Validate movie years using IMDb
-def validate_year(row, timeout=5):
+def validate_year(row, timeout=0.5):
     title = row['Title']
     original_year = row['Year']
     ia = IMDb()
@@ -44,7 +44,7 @@ def validate_year(row, timeout=5):
                     year = movie.get('year')
                     if year and year != original_year:
                         return year
-    except IMDbDataAccessError:
+    except (IMDbDataAccessError, Exception):
         pass
     return original_year
 
@@ -76,19 +76,19 @@ def validate_years(df):
     def update_progress(result, fact):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
-        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: {fact}")
+        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: \n\n{fact}")
         time.sleep(8)
         fact_placeholder.empty()
 
     with ThreadPoolExecutor(max_workers=30) as executor:  # Increase max_workers for faster execution
         futures = {executor.submit(validate_year, row): row for _, row in df.iterrows()}
-        for i, future in enumerate(as_completed(futures, timeout=20)):
+        for i, future in enumerate(as_completed(futures)):
             try:
-                result = future.result()
-            except TimeoutError:
+                result = future.result(timeout=0.5)
+            except (TimeoutError, Exception):
                 result = None
             fact = facts[i % len(facts)]
-            update_progress(result, fact)
+            update_progress(result if result is not None else futures[future]['Year'], fact)
 
     df['Validated Year'] = validated_years
     df['Year'] = df['Validated Year'].combine_first(df['Year'])
@@ -97,7 +97,7 @@ def validate_years(df):
 
 # Create a new column for 5-year intervals
 def create_year_intervals(df):
-    df = df.dropna(subset(['Year']))  # Drop rows where 'Year' is NaN
+    df = df.dropna(subset=['Year'])  # Drop rows where 'Year' is NaN
     df['Year Interval'] = (df['Year'] // 5) * 5
     df['Year Interval'] = df['Year Interval'].astype(int)
     return df
@@ -275,7 +275,7 @@ def main():
     ax1.set_ylabel('Average Rating')
     ax2.set_ylabel('Total Review Count')
     ax1.set_xlabel('Year Interval')
-    ax1.setTitle(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
+    ax1.set_title(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
 
     for i, (x, y) in enumerate(zip(avg_rating_reviews_by_interval.index, avg_rating_reviews_by_interval['Rating'])):
         ax1.text(i, y + 0.1, f'{y:.1f}', color='black', ha='center')
