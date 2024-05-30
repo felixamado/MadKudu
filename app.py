@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from imdb import IMDb
+from imdb import IMDb, IMDbDataAccessError
 from concurrent.futures import ThreadPoolExecutor
 import time
 
@@ -31,24 +31,29 @@ def clean_data(df):
     return df
 
 # Validate movie years using IMDb
-def validate_year(title, original_year):
+def validate_year(row):
+    title = row['Title']
+    original_year = row['Year']
     ia = IMDb()
-    movies = ia.search_movie(title)
-    if movies:
-        movie = movies[0]
-        ia.update(movie)
-        year = movie.get('year')
-        return year if year != original_year else None
+    try:
+        movies = ia.search_movie(title)
+        if movies:
+            movie = movies[0]
+            ia.update(movie)
+            year = movie.get('year')
+            if year and year != original_year:
+                return year
+    except IMDbDataAccessError as e:
+        st.error(f"Error accessing data for {title}: {e}")
     return None
 
 def validate_years(df):
-    ia = IMDb()
-    updated_years = []
+    validated_years = []
     with ThreadPoolExecutor(max_workers=10) as executor:
-        for result in executor.map(lambda row: validate_year(row['Title'], row['Year']), df.itertuples()):
-            updated_years.append(result)
-            st.progress(len(updated_years) / len(df))
-    df['Validated Year'] = updated_years
+        for result in executor.map(validate_year, df.itertuples(index=False)):
+            validated_years.append(result)
+            st.progress(len(validated_years) / len(df))
+    df['Validated Year'] = validated_years
     df['Year'] = df['Validated Year'].combine_first(df['Year'])
     df.drop(columns=['Validated Year'], inplace=True)
     return df
