@@ -104,7 +104,7 @@ def display_fun_facts():
 
     for fact in facts:
         fact_placeholder.info(f"Enjoy some Nic Cage's fun facts: \n\n{fact}")
-        time.sleep(9)
+        #time.sleep(9)
         fact_placeholder.empty()
 
 # Function to create year intervals
