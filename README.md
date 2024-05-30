@@ -59,10 +59,16 @@ Make sure you have Python installed on your system. You can download Python from
    pip install IMDbPY
    ```
 
-6. **Run the Streamlit app**:
+6. **Install necessary packages:**:
+   ```sh
+   pip install aiohttp asyncio
+   ```
+   
+7. **Run the Streamlit app**:
    ```sh
    streamlit run app.py
    ```
+   
 
 ## Additional Notes
 
