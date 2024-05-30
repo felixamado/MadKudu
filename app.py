@@ -47,22 +47,37 @@ def validate_year(title, original_year):
         st.warning(f"Error accessing IMDb for {title}: {e}")
     return original_year
 
-# Function to validate years for a DataFrame sequentially
-def validate_years_sequential(df):
+# Function to validate years for a DataFrame
+def validate_years(df, max_time=25):
     validated_years = []
-    total = len(df)
+    start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
+    total = len(df)
     
-    for i, row in df.iterrows():
-        validated_year = validate_year(row['Title'], row['Year'])
-        validated_years.append(validated_year)
-        progress_bar.progress((i + 1) / total)  # Update the progress bar
+    def update_progress(result):
+        validated_years.append(result)
+        progress_bar.progress(len(validated_years) / total)
+    
+    with ThreadPoolExecutor(max_workers=50) as executor:  # Increase max_workers for faster execution
+        futures = {executor.submit(validate_year, row['Title'], row['Year']): row for _, row in df.iterrows()}
+        for i, future in enumerate(as_completed(futures)):
+            if time.time() - start_time > max_time:
+                st.warning("WARNING: Validation process stopped due to time constraints. Remaining values will use the original data, which could result in inacurrate facts.")
+                break
+            try:
+                result = future.result(timeout=0.1)
+            except (TimeoutError, Exception):
+                result = None
+            update_progress(result if result is not None else futures[future]['Year'])
+
+    # Ensure all rows are processed
+    if len(validated_years) < total:
+        validated_years.extend(df['Year'][len(validated_years):])
 
     df['Validated Year'] = validated_years
     df['Year'] = df['Validated Year']  # Update Year column with validated years
     df.drop(columns=['Validated Year'], inplace=True)
     return df
-    
 
 
 
@@ -123,9 +138,9 @@ def main():
 
     # Validate years for Nicolas Cage movies
     start_time = time.time()
-    cage_movies = validate_years_sequential(cage_movies, max_time=25)
+    cage_movies = validate_years(cage_movies, max_time=25)
     end_time = time.time()
-    st.success(f'Validation with IMDB completed in {end_time - start_time:.2f} seconds.')
+    st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
 
     cage_movies = create_year_intervals(cage_movies)  # Create year intervals
 
