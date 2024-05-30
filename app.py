@@ -191,7 +191,7 @@ def main():
     st.pyplot(fig)
 
     st.subheader('Top 3 Genres Ranked by Ratings')
-    st.write("Let's see how the top 3 genres for Nicolas Cage's movies rank based on their average ratings and average votes per movie.")
+    st.write("Let's see how the top 3 genres for Nicolas Cage's movies rank based on their average ratings and average votes per movie. Numerical ratings by users, averaged on platforms like IMDb and Rotten Tomatoes, are relevant as they reflect general audience opinion and contribute to the movie's overall rating and audience score.")
     top_genre_ratings_votes = cage_movies[cage_movies['Genre'].isin(top_genres)].groupby('Genre').agg({'Rating': 'mean', 'Votes': 'mean'}).loc[top_genres]
 
     fig, ax1 = plt.subplots()
@@ -213,7 +213,7 @@ def main():
     st.pyplot(fig)
 
     st.subheader('Critical Reception by 5-Year Intervals')
-    st.write("Beyond audience ratings, let's take a look at the critical reception of Nicolas Cage's movies through their Metascores and review counts over 5-year intervals.")
+    st.write("Beyond audience ratings, let's take a look at the critical reception of Nicolas Cage's movies through their Metascores and review counts over 5-year intervals. Detailed assessments by critics or users, aggregated into scores by platforms like Rotten Tomatoes and Metacritic, are relevant as they provide in-depth analysis and qualitative feedback, influencing the overall critical consensus and Metascore.")
 
     avg_metascore_reviews_by_interval = cage_movies.groupby('Year Interval').agg({'Metascore': 'mean', 'Review Count': 'sum'}).dropna()
 
