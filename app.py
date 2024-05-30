@@ -3,7 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from imdb import IMDb, IMDbDataAccessError
-from concurrent.futures import ThreadPoolExecutor
 import asyncio
 import aiohttp
 import time
@@ -37,10 +36,10 @@ async def validate_year(row, ia, session):
     title = row['Title']
     original_year = row['Year']
     try:
-        movies = await ia.search_movie_async(title, session)
+        movies = await ia.search_movie(title)
         if movies:
             for movie in movies:
-                await ia.update_async(movie, session)
+                await ia.update(movie)
                 if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
                     year = movie.get('year')
                     if year and year != original_year:
@@ -56,7 +55,6 @@ async def validate_years_async(df, max_time=25):
     progress_bar = st.progress(0)
     total = len(df)
     facts = [
-        
         "He bought two king cobras, and this ended poorly. He was dismayed to find that the snakes kept trying to attack him, and then neighbors complained till he gave them up.",
         "He came to a fan's defense when Vince Neil attacked her. Attacked her physically, that is. Though, Cage may also have been doing this for Neil's sake.",
         "Cage chooses his diet based on animals' mating habits. He avoids pork, because he says pigs have dirty sex, but he eats fish and poultry, since fish and birds mate respectably.",
@@ -73,7 +71,6 @@ async def validate_years_async(df, max_time=25):
         "He's spent millions (to rehabilitate child soldiers). Not all his vanished money has gone to arcane relics. He's also known for giving a bunch to charity, including $2 million to Amnesty International.",
         "He crashed a Nicolas Cage film festival. He read Edgar Allan Poe to the audience, unprompted, then stayed to view five of his own movies back-to-back.",
         "He once did magic mushrooms with his cat. Said Cage, the cat kept raiding the fridge, so he decided they must do shrooms together, resulting in an hours-long shared trip."
-    
     ]
     fact_placeholder = st.empty()
 
@@ -89,7 +86,7 @@ async def validate_years_async(df, max_time=25):
                 result = await task
             except (asyncio.TimeoutError, Exception):
                 result = None
-            fact = facts[i % len(facts)]
+            fact = facts[i % len(facts)] if facts else "No fact available."
             fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: \n\n{fact}")
             validated_years.append(result if result is not None else df.iloc[i]['Year'])
             progress_bar.progress(len(validated_years) / total)
@@ -144,7 +141,7 @@ def main():
     top_genre = genre_counts.idxmax()
 
     total_movies = len(cage_movies)
-    top_genge_count = cage_movies[cage_movies['Genre'] == top_genre].shape[0]
+    top_genre_count = cage_movies[cage_movies['Genre'] == top_genre].shape[0]
     first_movie = cage_movies.sort_values(by='Year').iloc[0]
     first_movie_year = int(first_movie['Year'])
     first_movie_title = first_movie['Title']
@@ -153,7 +150,7 @@ def main():
     upcoming_movies = df[(df['Year'] >= current_year + 1) & (df['Cast'].str.contains('Nicolas Cage', case=False, na=False))]
 
     summary_paragraph = f"""
-    He has performed in a total of {total_movies} movies. His main genre is {top_genre}, having been part of {top_genge_count} movies in this genre. 
+    He has performed in a total of {total_movies} movies. His main genre is {top_genre}, having been part of {top_genre_count} movies in this genre. 
     He first appeared in a movie in the year {first_movie_year}, with the title "{first_movie_title}". 
     """
 
@@ -222,9 +219,9 @@ def main():
     top_genre_ratings_votes = cage_movies[cage_movies['Genre'].isin(top_genres)].groupby('Genre').agg({'Rating': 'mean', 'Votes': 'mean'}).loc[top_genres]
 
     fig, ax1 = plt.subplots()
-    sns.barplot(x=top_genge_ratings_votes.index, y=top_genre_ratings_votes['Rating'], ax=ax1, palette='viridis')
+    sns.barplot(x=top_genre_ratings_votes.index, y=top_genre_ratings_votes['Rating'], ax=ax1, palette='viridis')
     ax2 = ax1.twinx()
-    sns.lineplot(x=top_genge_ratings_votes.index, y=top_genge_ratings_votes['Votes'], ax=ax2, color='red', marker='o', linestyle='-', linewidth=2)
+    sns.lineplot(x=top_genre_ratings_votes.index, y=top_genre_ratings_votes['Votes'], ax=ax2, color='red', marker='o', linestyle='-', linewidth=2)
 
     ax1.set_ylabel('Average Rating')
     ax2.set_ylabel('Average Votes per Movie')
@@ -234,7 +231,7 @@ def main():
     for i, v in enumerate(top_genre_ratings_votes['Rating']):
         ax1.text(i, v + 0.1, f'{v:.1f}', color='black', ha='center')
 
-    for i, v in enumerate(top_genge_ratings_votes['Votes']):
+    for i, v in enumerate(top_genre_ratings_votes['Votes']):
         ax2.text(i, v, f'{int(v)}', color='red', ha='center')
 
     st.pyplot(fig)
@@ -288,7 +285,7 @@ def main():
 
     st.subheader('Summary and Conclusions')
     st.write(f"""
-    Starting in {first_movie_year} and over the past four decades, Nicolas Cage has showcased his versatility across a wide range of genres in {total_movies} movies. His most dominant genre is {top_genre}, with {top_genge_count} performances. Cage's movies have seen a diverse range of audience and critical receptions, with notable highs in both ratings and review counts.
+    Starting in {first_movie_year} and over the past four decades, Nicolas Cage has showcased his versatility across a wide range of genres in {total_movies} movies. His most dominant genre is {top_genre}, with {top_genre_count} performances. Cage's movies have seen a diverse range of audience and critical receptions, with notable highs in both ratings and review counts.
 
     In conclusion, Nicolas Cage's career is a testament to his ability to adapt and excel captivating audiences and critics alike. As we look forward to his upcoming movies, it's evident that Cage's legacy in the film industry will continue to grow.
 
