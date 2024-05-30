@@ -77,7 +77,7 @@ def validate_years(df):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
         fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: {fact}")
-        time.sleep(8)
+        #time.sleep(8)
         fact_placeholder.empty()
 
     with ThreadPoolExecutor(max_workers=30) as executor:  # Increase max_workers for faster execution
