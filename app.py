@@ -6,7 +6,7 @@ from imdb import IMDb, IMDbDataAccessError
 from concurrent.futures import ThreadPoolExecutor
 import time
 
-# Virtual environment setup instructions, as per Francis recomendation.
+# Virtual environment setup instructions
 st.sidebar.title('Setup Instructions')
 st.sidebar.write("""
 1. Create a virtual environment: `python -m venv env`
@@ -20,7 +20,7 @@ st.sidebar.write("""
 def load_data(file_path):
     return pd.read_csv(file_path)
 
-# Normalize and capitalize the data, this because some movies where not being aggregated due to different spelling.
+# Normalize and capitalize the data
 def clean_data(df):
     df['Title'] = df['Title'].str.lower().str.strip().str.title()
     df['Genre'] = df['Genre'].str.lower().str.strip().str.title().str.split(',').str[0]
@@ -30,7 +30,7 @@ def clean_data(df):
     df['Review Count'] = pd.to_numeric(df['Review Count'], errors='coerce')
     return df
 
-# Validate movie years using IMDb, this because the first movie was not in 1965 and my original approach of filtering data left data out.
+# Validate movie years using IMDb
 def validate_year(row):
     title = row['Title']
     original_year = row['Year']
