@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from imdb import IMDb, IMDbDataAccessError
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 
 # Virtual environment setup instructions
@@ -31,7 +31,7 @@ def clean_data(df):
     return df
 
 # Validate movie years using IMDb
-def validate_year(row):
+def validate_year(row, timeout=5):
     title = row['Title']
     original_year = row['Year']
     ia = IMDb()
@@ -44,8 +44,8 @@ def validate_year(row):
                     year = movie.get('year')
                     if year and year != original_year:
                         return year
-    except IMDbDataAccessError as e:
-        st.error(f"Error accessing data for {title}: {e}")
+    except IMDbDataAccessError:
+        pass
     return original_year
 
 def validate_years(df):
@@ -76,13 +76,13 @@ def validate_years(df):
     def update_progress(result, fact):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
-        fact_placeholder.info(fact)
+        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: {fact}")
         time.sleep(8)
         fact_placeholder.empty()
 
-    with ThreadPoolExecutor(max_workers=20) as executor:  # Increase max_workers for faster execution
-        futures = [executor.submit(validate_year, row) for _, row in df.iterrows()]
-        for i, future in enumerate(futures):
+    with ThreadPoolExecutor(max_workers=30) as executor:  # Increase max_workers for faster execution
+        futures = {executor.submit(validate_year, row): row for _, row in df.iterrows()}
+        for i, future in enumerate(as_completed(futures, timeout=20)):
             result = future.result()
             fact = facts[i % len(facts)]
             update_progress(result, fact)
@@ -140,7 +140,7 @@ def main():
     top_genre = genre_counts.idxmax()
 
     total_movies = len(cage_movies)
-    top_genre_count = cage_movies[cage_movies['Genre'] == top_genre].shape[0]
+    top_genge_count = cage_movies[cage_movies['Genre'] == top_genre].shape[0]
     first_movie = cage_movies.sort_values(by='Year').iloc[0]
     first_movie_year = int(first_movie['Year'])
     first_movie_title = first_movie['Title']
@@ -149,7 +149,7 @@ def main():
     upcoming_movies = df[(df['Year'] >= current_year + 1) & (df['Cast'].str.contains('Nicolas Cage', case=False, na=False))]
 
     summary_paragraph = f"""
-    He has performed in a total of {total_movies} movies. His main genre is {top_genre}, having been part of {top_genre_count} movies in this genre. 
+    He has performed in a total of {total_movies} movies. His main genre is {top_genre}, having been part of {top_genge_count} movies in this genre. 
     He first appeared in a movie in the year {first_movie_year}, with the title "{first_movie_title}". 
     """
 
@@ -218,9 +218,9 @@ def main():
     top_genre_ratings_votes = cage_movies[cage_movies['Genre'].isin(top_genres)].groupby('Genre').agg({'Rating': 'mean', 'Votes': 'mean'}).loc[top_genres]
 
     fig, ax1 = plt.subplots()
-    sns.barplot(x=top_genre_ratings_votes.index, y=top_genre_ratings_votes['Rating'], ax=ax1, palette='viridis')
+    sns.barplot(x=top_genge_ratings_votes.index, y=top_genre_ratings_votes['Rating'], ax=ax1, palette='viridis')
     ax2 = ax1.twinx()
-    sns.lineplot(x=top_genre_ratings_votes.index, y=top_genre_ratings_votes['Votes'], ax=ax2, color='red', marker='o', linestyle='-', linewidth=2)
+    sns.lineplot(x=top_genre_ratings_votes.index, y=top_genge_ratings_votes['Votes'], ax=ax2, color='red', marker='o', linestyle='-', linewidth=2)
 
     ax1.set_ylabel('Average Rating')
     ax2.set_ylabel('Average Votes per Movie')
