@@ -23,20 +23,59 @@ Make sure you have Python installed on your system. You can download Python from
 
 ### Setup
 
+```markdown
+# MadKudu
+
+## Setup Instructions
+
 1. **Clone the repository**:
    ```sh
    git clone https://github.com/felixamado/MadKudu.git
    cd MadKudu
-   
-2. **Install the required libraries**:
+   ```
+
+2. **Create a virtual environment**:
+   ```sh
+   python -m venv env
+   ```
+
+3. **Activate the virtual environment**:
+   - For Mac/Linux:
+     ```sh
+     source env/bin/activate
+     ```
+   - For Windows:
+     ```sh
+     env\Scripts\activate
+     ```
+
+4. **Install the required libraries**:
    ```sh
    pip install -r requirements.txt
    ```
 
-3. **Run the Streamlit app**:
+5. **Install IMDbPY**:
+   ```sh
+   pip install IMDbPY
+   ```
+
+6. **Run the Streamlit app**:
    ```sh
    streamlit run app.py
    ```
+
+## Additional Notes
+
+Make sure that the `imdb-movies-dataset.csv` file is in the same directory as the `app.py` script, or update the file path in the script accordingly.
+```
+
+You can copy the entire block of code above by clicking the "Copy code" button that appears when you hover over the code block in most markdown editors or code viewers.
+
+To ensure that the users can copy everything in one click:
+
+1. **Markdown Editors**: When viewing this in a markdown editor like VS Code, GitHub, or any other, simply hover over the code block, and a "Copy" button should appear. Clicking this button will copy the entire content of the code block.
+
+2. **GitHub**: When you push this markdown to GitHub, viewers can click the "Copy" button on the code block to copy all the instructions at once.
 
 ### Using the App
 
