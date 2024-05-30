@@ -126,7 +126,7 @@ def main():
     upcoming_movies = df[(df['Year'] >= current_year + 1) & (df['Cast'].str.contains('Nicolas Cage', case=False, na=False))]
 
     summary_paragraph = f"""
-    He has performed in a total of {total_movies} movies. His main genre is {top_genre}, having been part of {top_genre_count} movies in this genre. 
+    During the mentioned period, he performed in {total_movies} movies (but there are more!). His main genre is {top_genre}, having been part of {top_genre_count} movies in this genre. 
     He first appeared in a movie in the year {first_movie_year}, with the title "{first_movie_title}". 
     """
 
@@ -261,7 +261,7 @@ def main():
 
     st.subheader('Summary and Conclusions')
     st.write(f"""
-    Starting in {first_movie_year} and over the past four decades, Nicolas Cage has showcased his versatility across a wide range of genres in {total_movies} movies. His most dominant genre is {top_genre}, with {top_genre_count} performances. Cage's movies have seen a diverse range of audience and critical receptions, with notable highs in both ratings and review counts.
+    Starting in {first_movie_year} and over the past four decades, Nicolas Cage has showcased his versatility across a wide range of genres in {total_movies} movies during 1985 and 2024. His most dominant genre is {top_genre}, with {top_genre_count} performances. Cage's movies have seen a diverse range of audience and critical receptions, with notable highs in both ratings and review counts.
 
     In conclusion, Nicolas Cage's career is a testament to his ability to adapt and excel captivating audiences and critics alike. As we look forward to his upcoming movies, it's evident that Cage's legacy in the film industry will continue to grow.
 
