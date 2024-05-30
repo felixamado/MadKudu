@@ -31,59 +31,60 @@ def clean_data(df):
     df['Review Count'] = pd.to_numeric(df['Review Count'], errors='coerce')
     return df
 
-# Function to validate and clean movie details using IMDb
-# It fetches movie details (Year, Director, Genre, Cast) from IMDb and updates the original data.
-def validate_and_update_movie(row):
+# Function to validate movie years using IMDb
+# It attempts to match movie titles with their corresponding release years, specifically checking for Nicolas Cage's movies.
+def validate_year(title, original_year):
     ia = IMDb()
-    title = row['Title']
-    original_year = row['Year']
     try:
         movies = ia.search_movie(title)
         if movies:
             for movie in movies:
                 ia.update(movie)
                 if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
-                    year = movie.get('year', original_year)
-                    director = ', '.join([person['name'] for person in movie.get('directors', [])]) or row['Director']
-                    genre = ', '.join(movie.get('genres', [])) or row['Genre']
-                    cast = ', '.join([person['name'] for person in movie.get('cast', [])]) or row['Cast']
-                    return {
-                        'Year': year,
-                        'Director': director,
-                        'Genre': genre,
-                        'Cast': cast
-                    }
+                    year = movie.get('year')
+                    if year and year != original_year:
+                        return year
     except (IMDbDataAccessError, Exception):
         pass
-    return {
-        'Year': original_year,
-        'Director': row['Director'],
-        'Genre': row['Genre'],
-        'Cast': row['Cast']
-    }
+    return original_year
 
-# Function to validate and clean years for a DataFrame
-# This function validates and updates movie details for movies starring Nicolas Cage within a specified time limit, displaying progress and fun facts.
-def validate_and_clean_data(df, max_time=25):
-    updated_data = []
+# Function to validate years for a DataFrame
+# This function validates the years for movies starring Nicolas Cage within a specified time limit, displaying progress and fun facts.
+def validate_years(df, max_time=25):
+    validated_years = []
     start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
     total = len(df)
     facts = [
-        # List of fun facts about Nicolas Cage
+        "He bought two king cobras, and this ended poorly. He was dismayed to find that the snakes kept trying to attack him, and then neighbors complained till he gave them up.",
+        "He came to a fan's defense when Vince Neil attacked her. Attacked her physically, that is. Though, Cage may also have been doing this for Neil's sake.",
+        "Cage chooses his diet based on animals' mating habits. He avoids pork, because he says pigs have dirty sex, but he eats fish and poultry, since fish and birds mate respectably.",
+        "He really wants to do a musical. So we put together some choices for which one would suit him best.",
+        "His healing hands saved a shooting victim. He was riding in an ambulance to prepare for his role as an EMT in Martin Scorsese's Bringing Out the Dead, then things got a little too real.",
+        "He was the first choice to play Aragorn in Lord of the Rings.",
+        "He lost a $100,000 treasure at sea. His fiancée, Lisa Marie Presley, chucked her engagement ring off his yacht, and divers never managed to retrieve it.",
+        "An antiques dealer auctioned off 'proof' Cage is a vampire, for $1 million. This was a Civil War–era photo featuring someone who looked like Cage.",
+        "Nicolas Cage was once bailed out of jail by Dog the Bounty Hunter. Police booked him after a drunken night in New Orleans, but the charges fortunately didn't stick.",
+        "Bad Lieutenant featured a hallucinatory iguana, who bit director Werner Herzog. This was not in the screenplay, and it's debatable just why Herzog included this.",
+        "Cage actually tried to find the Holy Grail. After traveling the world, he concluded that the grail only made sense as a metaphor.",
+        "During the filming of Vampire's Kiss, he ate a cockroach for real.",
+        "His comedy is sometimes intentional, and sometimes very much not. Consider the brilliant intentional comedy of Adaptation, and the also brilliant unintentional comedy of Face/Off.",
+        "He's spent millions (to rehabilitate child soldiers). Not all his vanished money has gone to arcane relics. He's also known for giving a bunch to charity, including $2 million to Amnesty International.",
+        "He crashed a Nicolas Cage film festival. He read Edgar Allan Poe to the audience, unprompted, then stayed to view five of his own movies back-to-back.",
+        "He once did magic mushrooms with his cat. Said Cage, the cat kept raiding the fridge, so he decided they must do shrooms together, resulting in an hours-long shared trip."
     ]
 
     fact_placeholder = st.empty()
 
-    def update_progress(updated_row, fact):
-        updated_data.append(updated_row)
-        progress_bar.progress(len(updated_data) / total)
+    def update_progress(result, fact):
+        validated_years.append(result)
+        progress_bar.progress(len(validated_years) / total)
         fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: \n\n{fact}")
         time.sleep(8)
         fact_placeholder.empty()
 
     with ThreadPoolExecutor(max_workers=30) as executor:  # Increase max_workers for faster execution
-        futures = {executor.submit(validate_and_update_movie, row): row for _, row in df.iterrows()}
+        futures = {executor.submit(validate_year, row['Title'], row['Year']): row for _, row in df.iterrows()}
         for i, future in enumerate(as_completed(futures)):
             if time.time() - start_time > max_time:
                 st.warning("Validation process stopped due to time constraints. Remaining values will use the original data.")
@@ -91,35 +92,17 @@ def validate_and_clean_data(df, max_time=25):
             try:
                 result = future.result(timeout=0.1)
             except (TimeoutError, Exception):
-                result = {
-                    'Year': None,
-                    'Director': None,
-                    'Genre': None,
-                    'Cast': None
-                }
+                result = None
             fact = facts[i % len(facts)]
-            updated_row = {
-                'Title': futures[future]['Title'],
-                'Year': result['Year'] if result['Year'] is not None else futures[future]['Year'],
-                'Director': result['Director'] if result['Director'] is not None else futures[future]['Director'],
-                'Genre': result['Genre'] if result['Genre'] is not None else futures[future]['Genre'],
-                'Cast': result['Cast'] if result['Cast'] is not None else futures[future]['Cast']
-            }
-            update_progress(updated_row, fact)
+            update_progress(result if result is not None else futures[future]['Year'], fact)
 
-    if len(updated_data) < total:
-        remaining_rows = df.iloc[len(updated_data):]
-        for _, row in remaining_rows.iterrows():
-            updated_data.append({
-                'Title': row['Title'],
-                'Year': row['Year'],
-                'Director': row['Director'],
-                'Genre': row['Genre'],
-                'Cast': row['Cast']
-            })
+    if len(validated_years) < total:
+        validated_years.extend(df['Year'][len(validated_years):])
 
-    cleaned_df = pd.DataFrame(updated_data)
-    return cleaned_df
+    df['Validated Year'] = validated_years
+    df['Year'] = df['Validated Year'].combine_first(df['Year'])
+    df.drop(columns=['Validated Year'], inplace=True)
+    return df
 
 # Function to create year intervals
 # This function groups the 'Year' column into 5-year intervals.
@@ -144,11 +127,11 @@ def main():
     # Filter rows where Nicolas Cage is mentioned in the Cast
     cage_movies = df[df['Cast'].str.contains('Nicolas Cage', case=False, na=False)].copy()
     
-    # Validate and clean data for Nicolas Cage movies
+    # Validate years for Nicolas Cage movies
     start_time = time.time()
-    cage_movies = validate_and_clean_data(cage_movies, max_time=20)
+    cage_movies = validate_years(cage_movies, max_time=20)
     end_time = time.time()
-    st.success(f'Validation and cleaning completed in {end_time - start_time:.2f} seconds.')
+    st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
 
     cage_movies = create_year_intervals(cage_movies)  # Create year intervals
 
@@ -251,10 +234,10 @@ def main():
     # Subheader and description for top 3 genres ranked by ratings
     st.subheader('Top 3 Genres Ranked by Ratings')
     st.write("Let's see how the top 3 genres for Nicolas Cage's movies rank based on their average ratings and average votes per movie.")
-    top_genre_ratings_votes = cage_movies[cage_movies['Genre'].isin(top_genres)].groupby('Genre').agg({'Rating': 'mean', 'Votes': 'mean'}).loc[top_genres]
+    top_genge_ratings_votes = cage_movies[cage_movies['Genre'].isin(top_genres)].groupby('Genre').agg({'Rating': 'mean', 'Votes': 'mean'}).loc[top_genres]
 
     fig, ax1 = plt.subplots()
-    sns.barplot(x=top_genre_ratings_votes.index, y=top_genge_ratings_votes['Rating'], ax=ax1, palette='viridis')
+    sns.barplot(x=top_genge_ratings_votes.index, y=top_genge_ratings_votes['Rating'], ax=ax1, palette='viridis')
     ax2 = ax1.twinx()
     sns.lineplot(x=top_genre_ratings_votes.index, y=top_genge_ratings_votes['Votes'], ax=ax2, color='red', marker='o', linestyle='-', linewidth=2)
 
@@ -263,7 +246,7 @@ def main():
     ax1.set_xlabel('Genre')
     ax1.set_title('Top 3 Genres Ranked by Ratings and Votes')
 
-    for i, v in enumerate(top_genge_ratings_votes['Rating']):
+    for i, v in enumerate(top_genre_ratings_votes['Rating']):
         ax1.text(i, v + 0.1, f'{v:.1f}', color='black', ha='center')
 
     for i, v in enumerate(top_genge_ratings_votes['Votes']):
@@ -287,10 +270,10 @@ def main():
     ax1.set_xlabel('Year Interval')
     ax1.set_title('Critical Reception by 5-Year Intervals')
 
-    for i, (x, y) in zip(avg_metascore_reviews_by_interval.index, avg_metascore_reviews_by_interval['Metascore']):
+    for i, (x, y) in enumerate(zip(avg_metascore_reviews_by_interval.index, avg_metascore_reviews_by_interval['Metascore'])):
         ax1.text(i, y + 0.5, f'{int(y)}', color='black', ha='center')
 
-    for i, (x, y) in zip(avg_metascore_reviews_by_interval.index, avg_metascore_reviews_by_interval['Review Count']):
+    for i, (x, y) in enumerate(zip(avg_metascore_reviews_by_interval.index, avg_metascore_reviews_by_interval['Review Count'])):
         ax2.text(i, y, f'{int(y)}', color='red', ha='center')
 
     st.pyplot(fig)
@@ -299,7 +282,7 @@ def main():
     st.subheader(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
     st.write(f"Let's dive deeper into the {top_genre}, which is Nic's most dominant genre and see how the ratings and reviews evolved over 5-year intervals.")
 
-    top_genre_movies = cage_movies[cage_movies['Genre'] == top_genge]
+    top_genre_movies = cage_movies[cage_movies['Genre'] == top_genre]
     avg_rating_reviews_by_interval = top_genre_movies.groupby('Year Interval').agg({'Rating': 'mean', 'Review Count': 'sum'}).dropna()
 
     fig, ax1 = plt.subplots()
@@ -312,7 +295,7 @@ def main():
     ax1.set_xlabel('Year Interval')
     ax1.setTitle(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
 
-    for i, (x, y) in zip(avg_rating_reviews_by_interval.index, avg_rating_reviews_by_interval['Rating']):
+    for i, (x, y) in enumerate(zip(avg_rating_reviews_by_interval.index, avg_rating_reviews_by_interval['Rating'])):
         ax1.text(i, y + 0.1, f'{y:.1f}', color='black', ha='center')
 
     for i, (x, y) in zip(avg_rating_reviews_by_interval.index, avg_rating_reviews_by_interval['Review Count']):
