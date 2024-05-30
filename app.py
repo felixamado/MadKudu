@@ -32,6 +32,7 @@ def clean_data(df):
     return df
 
 # Function to validate movie years using IMDb
+# Function to validate movie years using IMDb
 def validate_year(title, original_year):
     ia = IMDb()
     try:
@@ -41,8 +42,8 @@ def validate_year(title, original_year):
                 ia.update(movie)
                 if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
                     year = movie.get('year')
-                    if year:
-                        return year  # Return the IMDb year directly
+                    if year and year != original_year:
+                        return year
     except (IMDbDataAccessError, Exception) as e:
         st.warning(f"Error accessing IMDb for {title}: {e}")
     return original_year
@@ -70,11 +71,15 @@ def validate_years(df, max_time=25):
                 result = None
             update_progress(result if result is not None else futures[future]['Year'])
 
+    # Ensure all rows are processed
     if len(validated_years) < total:
         validated_years.extend(df['Year'][len(validated_years):])
 
-    df['Year'] = validated_years  # Directly assign the validated years to the Year column
+    df['Validated Year'] = validated_years
+    df['Year'] = df['Validated Year']  # Update Year column with validated years
+    df.drop(columns=['Validated Year'], inplace=True)
     return df
+
 
 
 
