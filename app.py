@@ -39,10 +39,10 @@ def validate_year(title, original_year):
         if movies:
             for movie in movies:
                 ia.update(movie)
-                if movie.get('year') and 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
+                if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
                     year = movie.get('year')
-                    if year != original_year:
-                        return year
+                    if year:
+                        return year  # Return the IMDb year directly
     except (IMDbDataAccessError, Exception) as e:
         st.warning(f"Error accessing IMDb for {title}: {e}")
     return original_year
@@ -73,10 +73,9 @@ def validate_years(df, max_time=25):
     if len(validated_years) < total:
         validated_years.extend(df['Year'][len(validated_years):])
 
-    df['Validated Year'] = validated_years
-    df['Year'] = df['Validated Year']
-    df.drop(columns=['Validated Year'], inplace=True)
+    df['Year'] = validated_years  # Directly assign the validated years to the Year column
     return df
+
 
 
 # Function to display fun facts
