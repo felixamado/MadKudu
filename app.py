@@ -49,7 +49,7 @@ def validate_year(title, original_year):
     return original_year
 
 # Function to validate years for a DataFrame
-def validate_years(df, max_time=25):
+def validate_years(df, max_time=250):
     validated_years = []
     start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
