@@ -53,7 +53,7 @@ def validate_years(df):
     progress_bar = st.progress(0)  # Initialize a single progress bar
     total = len(df)
     facts = [
-        "He bought two king cobras, and this ended poorly. He was dismayed to find that the snakes kept trying to attacking him, and then neighbors complained till he gave them up.",
+        "He bought two king cobras, and this ended poorly. He was dismayed to find that the snakes kept trying to attack him, and then neighbors complained till he gave them up.",
         "He came to a fan's defense when Vince Neil attacked her. Attacked her physically, that is. Though, Cage may also have been doing this for Neil's sake.",
         "Cage chooses his diet based on animals' mating habits. He avoids pork, because he says pigs have dirty sex, but he eats fish and poultry, since fish and birds mate respectably.",
         "He really wants to do a musical. So we put together some choices for which one would suit him best.",
@@ -71,11 +71,14 @@ def validate_years(df):
         "He once did magic mushrooms with his cat. Said Cage, the cat kept raiding the fridge, so he decided they must do shrooms together, resulting in an hours-long shared trip."
     ]
 
+    fact_placeholder = st.empty()
+
     def update_progress(result, fact):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
-        st.info(fact)
+        fact_placeholder.info(fact)
         time.sleep(8)
+        fact_placeholder.empty()
 
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(validate_year, row) for _, row in df.iterrows()]
@@ -88,6 +91,7 @@ def validate_years(df):
     df['Year'] = df['Validated Year'].combine_first(df['Year'])
     df.drop(columns=['Validated Year'], inplace=True)
     return df
+
 
 # Create a new column for 5-year intervals
 def create_year_intervals(df):
