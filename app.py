@@ -80,10 +80,10 @@ def validate_years(df, max_time=25):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
         fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: \n\n{fact}")
-        time.sleep(8)
+        time.sleep(9)
         fact_placeholder.empty()
 
-    with ThreadPoolExecutor(max_workers=30) as executor:  # Increase max_workers for faster execution
+    with ThreadPoolExecutor(max_workers=50) as executor:  # Increase max_workers for faster execution
         futures = {executor.submit(validate_year, row['Title'], row['Year']): row for _, row in df.iterrows()}
         for i, future in enumerate(as_completed(futures)):
             if time.time() - start_time > max_time:
