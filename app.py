@@ -14,7 +14,7 @@ st.sidebar.write("""
 """)
 
 # Load the dataset
-@st.cache_data
+@st.cache
 def load_data(file_path):
     return pd.read_csv(file_path)
 
@@ -44,7 +44,7 @@ def create_year_intervals(df):
 
 # Main function to run the app
 def main():
-    df = load_data('imdb-movies-dataset.csv')  # Ensure the file is in the same directory as this script
+    df = load_data('imdb-movies-dataset.csv')
     df = clean_data(df)
 
     cage_movies = filter_cage_movies(df)
