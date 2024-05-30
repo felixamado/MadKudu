@@ -5,6 +5,7 @@ import seaborn as sns
 from imdb import IMDb, IMDbDataAccessError
 from concurrent.futures import ThreadPoolExecutor
 import time
+import random
 
 # Virtual environment setup instructions
 st.sidebar.title('Setup Instructions')
@@ -71,18 +72,17 @@ def validate_years(df):
         "He once did magic mushrooms with his cat. Said Cage, the cat kept raiding the fridge, so he decided they must do shrooms together, resulting in an hours-long shared trip."
     ]
 
-    def update_progress(result, fact):
+    def update_progress(result):
         validated_years.append(result)
+        fact = random.choice(facts)
         progress_bar.progress(len(validated_years) / total)
         st.info(fact)
-        #time.sleep(8)
 
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(validate_year, row) for _, row in df.iterrows()]
-        for i, future in enumerate(futures):
+        for future in futures:
             result = future.result()
-            fact = facts[i % len(facts)]
-            update_progress(result, fact)
+            update_progress(result)
 
     df['Validated Year'] = validated_years
     df['Year'] = df['Validated Year'].combine_first(df['Year'])
@@ -112,10 +112,11 @@ def main():
     cage_movies = df[df['Cast'].str.contains('Nicolas Cage', case=False, na=False)].copy()
     
     # Validate years for Nicolas Cage movies
-    start_time = time.time()
-    cage_movies = validate_years(cage_movies)
-    end_time = time.time()
-    st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
+    with st.spinner('Validating movie years against IMDb...'):
+        start_time = time.time()
+        cage_movies = validate_years(cage_movies)
+        end_time = time.time()
+        st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
 
     cage_movies = create_year_intervals(cage_movies)
 
@@ -244,7 +245,7 @@ def main():
 
     ax1.set_ylabel('Average Metascore')
     ax2.set_ylabel('Total Review Count')
-    ax1.set_xlabel('Year Interval')
+        ax1.set_xlabel('Year Interval')
     ax1.set_title('Critical Reception by 5-Year Intervals')
 
     for i, (x, y) in enumerate(zip(avg_metascore_reviews_by_interval.index, avg_metascore_reviews_by_interval['Metascore'])):
