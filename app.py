@@ -31,23 +31,26 @@ def clean_data(df):
     return df
 
 # Validate movie years using IMDb
-def validate_year(title):
+def validate_year(title, original_year):
     ia = IMDb()
     movies = ia.search_movie(title)
     if movies:
         movie = movies[0]
         ia.update(movie)
-        return movie.get('year')
+        year = movie.get('year')
+        return year if year != original_year else None
     return None
 
 def validate_years(df):
     ia = IMDb()
-    validated_years = []
+    updated_years = []
     with ThreadPoolExecutor(max_workers=10) as executor:
-        for result in executor.map(validate_year, df['Title']):
-            validated_years.append(result)
-            st.progress(len(validated_years) / len(df['Title']))
-    df['Validated Year'] = validated_years
+        for result in executor.map(lambda row: validate_year(row['Title'], row['Year']), df.itertuples()):
+            updated_years.append(result)
+            st.progress(len(updated_years) / len(df))
+    df['Validated Year'] = updated_years
+    df['Year'] = df['Validated Year'].combine_first(df['Year'])
+    df.drop(columns=['Validated Year'], inplace=True)
     return df
 
 # Create a new column for 5-year intervals
