@@ -39,12 +39,12 @@ def validate_year(title, original_year):
         if movies:
             for movie in movies:
                 ia.update(movie)
-                if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
+                if movie.get('year') and 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
                     year = movie.get('year')
-                    if year and year != original_year:
+                    if year != original_year:
                         return year
-    except (IMDbDataAccessError, Exception):
-        pass
+    except (IMDbDataAccessError, Exception) as e:
+        st.warning(f"Error accessing IMDb for {title}: {e}")
     return original_year
 
 # Function to validate years for a DataFrame
@@ -53,10 +53,14 @@ def validate_years(df, max_time=25):
     start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
     total = len(df)
-
+    
+    def update_progress(result):
+        validated_years.append(result)
+        progress_bar.progress(len(validated_years) / total)
+    
     with ThreadPoolExecutor(max_workers=50) as executor:  # Increase max_workers for faster execution
         futures = {executor.submit(validate_year, row['Title'], row['Year']): row for _, row in df.iterrows()}
-        for future in as_completed(futures):
+        for i, future in enumerate(as_completed(futures)):
             if time.time() - start_time > max_time:
                 st.warning("Validation process stopped due to time constraints. Remaining values will use the original data.")
                 break
@@ -64,16 +68,16 @@ def validate_years(df, max_time=25):
                 result = future.result(timeout=0.1)
             except (TimeoutError, Exception):
                 result = None
-            validated_years.append(result if result is not None else futures[future]['Year'])
-            progress_bar.progress(len(validated_years) / total)
+            update_progress(result if result is not None else futures[future]['Year'])
 
     if len(validated_years) < total:
         validated_years.extend(df['Year'][len(validated_years):])
 
     df['Validated Year'] = validated_years
-    df['Year'] = df['Validated Year'].combine_first(df['Year'])
+    df['Year'] = df['Validated Year']
     df.drop(columns=['Validated Year'], inplace=True)
     return df
+
 
 # Function to display fun facts
 def display_fun_facts():
