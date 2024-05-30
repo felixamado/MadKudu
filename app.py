@@ -140,7 +140,7 @@ def main():
     start_time = time.time()
     cage_movies = validate_years(cage_movies, max_time=25)
     end_time = time.time()
-    st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
+    st.success(f'Validation with IMDB completed in {end_time - start_time:.2f} seconds.')
 
     cage_movies = create_year_intervals(cage_movies)  # Create year intervals
 
