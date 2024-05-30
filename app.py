@@ -32,7 +32,6 @@ def clean_data(df):
     return df
 
 # Function to validate movie years using IMDb
-# Function to validate movie years using IMDb
 def validate_year(title, original_year):
     ia = IMDb()
     try:
@@ -49,7 +48,7 @@ def validate_year(title, original_year):
     return original_year
 
 # Function to validate years for a DataFrame
-def validate_years(df, max_time=250):
+def validate_years(df, max_time=25):
     validated_years = []
     start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
@@ -63,7 +62,7 @@ def validate_years(df, max_time=250):
         futures = {executor.submit(validate_year, row['Title'], row['Year']): row for _, row in df.iterrows()}
         for i, future in enumerate(as_completed(futures)):
             if time.time() - start_time > max_time:
-                st.warning("Validation process stopped due to time constraints. Remaining values will use the original data.")
+                st.warning("WARNING: Validation process stopped due to time constraints. Remaining values will use the original data, which could result in inacurrate facts.")
                 break
             try:
                 result = future.result(timeout=0.1)
@@ -83,7 +82,7 @@ def validate_years(df, max_time=250):
 
 
 
-# Function to display fun facts
+# Function to display fun facts, I added this function because the evaluation was taking too long, but then it started performing faster after i removed the sleep.
 def display_fun_facts():
     facts = [
         "He bought two king cobras, and this ended poorly. He was dismayed to find that the snakes kept trying to attack him, and then neighbors complained till he gave them up.",
