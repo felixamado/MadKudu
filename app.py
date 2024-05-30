@@ -31,7 +31,7 @@ def clean_data(df):
     return df
 
 # Validate movie years using IMDb
-def validate_year(row, timeout=0.001):
+def validate_year(row, timeout=5):
     title = row['Title']
     original_year = row['Year']
     ia = IMDb()
@@ -44,13 +44,12 @@ def validate_year(row, timeout=0.001):
                     year = movie.get('year')
                     if year and year != original_year:
                         return year
-    except (IMDbDataAccessError, Exception):
+    except IMDbDataAccessError:
         pass
     return original_year
 
-def validate_years(df, max_time=25):
+def validate_years(df):
     validated_years = []
-    start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
     total = len(df)
     facts = [
@@ -77,25 +76,19 @@ def validate_years(df, max_time=25):
     def update_progress(result, fact):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
-        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: \n\n{fact}")
-        #time.sleep(8)
+        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: {fact}")
+        time.sleep(8)
         fact_placeholder.empty()
 
     with ThreadPoolExecutor(max_workers=30) as executor:  # Increase max_workers for faster execution
         futures = {executor.submit(validate_year, row): row for _, row in df.iterrows()}
-        for i, future in enumerate(as_completed(futures)):
-            if time.time() - start_time > max_time:
-                st.warning("Validation process stopped due to time constraints. Remaining values will use the original data.")
-                break
+        for i, future in enumerate(as_completed(futures, timeout=20)):
             try:
-                result = future.result(timeout=0.1)
-            except (TimeoutError, Exception):
+                result = future.result()
+            except TimeoutError:
                 result = None
             fact = facts[i % len(facts)]
-            update_progress(result if result is not None else futures[future]['Year'], fact)
-
-    if len(validated_years) < total:
-        validated_years.extend(df['Year'][len(validated_years):])
+            update_progress(result, fact)
 
     df['Validated Year'] = validated_years
     df['Year'] = df['Validated Year'].combine_first(df['Year'])
@@ -104,7 +97,7 @@ def validate_years(df, max_time=25):
 
 # Create a new column for 5-year intervals
 def create_year_intervals(df):
-    df = df.dropna(subset=['Year'])  # Drop rows where 'Year' is NaN
+    df = df.dropna(subset(['Year']))  # Drop rows where 'Year' is NaN
     df['Year Interval'] = (df['Year'] // 5) * 5
     df['Year Interval'] = df['Year Interval'].astype(int)
     return df
@@ -126,7 +119,7 @@ def main():
     
     # Validate years for Nicolas Cage movies
     start_time = time.time()
-    cage_movies = validate_years(cage_movies, max_time=20)
+    cage_movies = validate_years(cage_movies)
     end_time = time.time()
     st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
 
