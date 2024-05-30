@@ -70,7 +70,8 @@ def validate_years(df, max_time=25):
                 result = None
             update_progress(result if result is not None else futures[future]['Year'])
 
-    # Ensure all rows are processed
+    
+    return df
     
 
 
