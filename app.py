@@ -4,28 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from imdb import IMDb, IMDbDataAccessError
 from concurrent.futures import ThreadPoolExecutor
-import tkinter as tk
 import time
-
-#I added these facts to show them while i evaluate the years in IMDB, because some are off.
-facts = [
-    "He bought two king cobras, and this ended poorly. He was dismayed to find that the snakes kept trying to attack him, and then neighbors complained till he gave them up.",
-    "He came to a fan's defense when Vince Neil attacked her. Attacked her physically, that is. Though, Cage may also have been doing this for Neil's sake.",
-    "Cage chooses his diet based on animals' mating habits. He avoids pork, because he says pigs have dirty sex, but he eats fish and poultry, since fish and birds mate respectably.",
-    "He really wants to do a musical. So we put together some choices for which one would suit him best.",
-    "His healing hands saved a shooting victim. He was riding in an ambulance to prepare for his role as an EMT in Martin Scorsese's Bringing Out the Dead, then things got a little too real.",
-    "He was the first choice to play Aragorn in Lord of the Rings.",
-    "He lost a $100,000 treasure at sea. His fiancée, Lisa Marie Presley, chucked her engagement ring off his yacht, and divers never managed to retrieve it.",
-    "An antiques dealer auctioned off 'proof' Cage is a vampire, for $1 million. This was a Civil War–era photo featuring someone who looked like Cage.",
-    "Nicolas Cage was once bailed out of jail by Dog the Bounty Hunter. Police booked him after a drunken night in New Orleans, but the charges fortunately didn't stick.",
-    "Bad Lieutenant featured a hallucinatory iguana, who bit director Werner Herzog. This was not in the screenplay, and it's debatable just why Herzog included this.",
-    "Cage actually tried to find the Holy Grail. After traveling the world, he concluded that the grail only made sense as a metaphor.",
-    "During the filming of Vampire's Kiss, he ate a cockroach for real.",
-    "His comedy is sometimes intentional, and sometimes very much not. Consider the brilliant intentional comedy of Adaptation, and the also brilliant unintentional comedy of Face/Off.",
-    "He's spent millions (to rehabilitate child soldiers). Not all his vanished money has gone to arcane relics. He's also known for giving a bunch to charity, including $2 million to Amnesty International.",
-    "He crashed a Nicolas Cage film festival. He read Edgar Allan Poe to the audience, unprompted, then stayed to view five of his own movies back-to-back.",
-    "He once did magic mushrooms with his cat. Said Cage, the cat kept raiding the fridge, so he decided they must do shrooms together, resulting in an hours-long shared trip."
-]
 
 # Virtual environment setup instructions
 st.sidebar.title('Setup Instructions')
