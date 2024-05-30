@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-current_year = pd.to_datetime('now').year
+from imdb import IMDb
 
 # Virtual environment setup instructions
 st.sidebar.title('Setup Instructions')
@@ -50,6 +50,22 @@ def calculate_decades(df):
     decades = (latest_year - earliest_year + 1) // 10
     return decades, earliest_year, latest_year
 
+# Validate movie years using IMDb
+def validate_years(df):
+    ia = IMDb()
+    validated_years = []
+    for title in df['Title']:
+        movies = ia.search_movie(title)
+        if movies:
+            movie = movies[0]
+            ia.update(movie)
+            year = movie.get('year')
+            validated_years.append(year)
+        else:
+            validated_years.append(None)
+    df['Validated Year'] = validated_years
+    return df
+
 # Main function to run the app
 def main():
     df = load_data('imdb-movies-dataset.csv')  # Ensure the file is in the same directory as this script
@@ -58,6 +74,9 @@ def main():
     cage_movies = filter_cage_movies(df)
     cage_movies = remove_duplicates(cage_movies)
     cage_movies = create_year_intervals(cage_movies)
+    
+    # Validate years
+    cage_movies = validate_years(cage_movies)
 
     # Calculate decades
     decades, earliest_year, latest_year = calculate_decades(cage_movies)
@@ -82,6 +101,7 @@ def main():
     first_movie_year = int(first_movie['Year'])
     first_movie_title = first_movie['Title']
 
+    current_year = pd.to_datetime('now').year
     upcoming_movies = df[(df['Year'] >= current_year + 1) & (df['Cast'].str.contains('Nicolas Cage', case=False, na=False))]
 
     summary_paragraph = f"""
