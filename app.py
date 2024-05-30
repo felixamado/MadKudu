@@ -197,8 +197,7 @@ def main():
 
     # Subheader and description for top-rated movies
     st.subheader('Top Rated Movies')
-    st.write("Nicolas Cage has undoubtedly delivered some stellar performances. Here are the top-rated movies starring
- Nicolas Cage.")
+    st.write("Nicolas Cage has undoubtedly delivered some stellar performances. Here are the top-rated movies starring Nicolas Cage.")
     top_rated = cage_movies.sort_values(by='Rating', ascending=False).head(10)
     top_rated['Year'] = top_rated['Year'].astype(int)
     top_rated['Rating'] = top_rated['Rating'].round(1)
