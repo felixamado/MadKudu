@@ -43,6 +43,13 @@ def create_year_intervals(df):
     df['Year Interval'] = df['Year Interval'].astype(int)
     return df
 
+# Calculate the number of complete decades
+def calculate_decades(df):
+    earliest_year = df['Year'].min()
+    latest_year = df['Year'].max()
+    decades = (latest_year - earliest_year + 1) // 10
+    return decades, earliest_year, latest_year
+
 # Main function to run the app
 def main():
     df = load_data('imdb-movies-dataset.csv')  # Ensure the file is in the same directory as this script
@@ -52,10 +59,15 @@ def main():
     cage_movies = remove_duplicates(cage_movies)
     cage_movies = create_year_intervals(cage_movies)
 
-    st.title('Nicolas Cage: A 4 Decade Journey Through Film')
+    # Calculate decades
+    decades, earliest_year, latest_year = calculate_decades(cage_movies)
+    decade_text = f"{decades} decades" if decades != 4 else "4 decades"
+    
+    st.title(f'Nicolas Cage: A Journey Through Film Spanning {decade_text}')
     st.image("https://m.media-amazon.com/images/M/MV5BMzY5YTYwODAtZjY4Yi00OGY5LTk0MTAtNWRhNDc1NWQ4ZGI1XkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_QL75_UX500_CR0,0,500,281_.jpg", caption="Nicolas Cage iconic performances")
-    st.write("Nicolas Cage is one of Hollywood's most enigmatic and versatile actors. With a career spanning 4 decades, he's played a wide range of characters in a variety of genres.")
 
+    st.write(f"Nicolas Cage is one of Hollywood's most enigmatic and versatile actors. With a career spanning {decade_text} (from {earliest_year} to {latest_year}), he's played a wide range of characters in a variety of genres.")
+    
     cage_movies['Year'] = pd.to_numeric(cage_movies['Year'], errors='coerce')
     cage_movies = create_year_intervals(cage_movies)
 
