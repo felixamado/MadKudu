@@ -31,7 +31,7 @@ def clean_data(df):
     return df
 
 # Validate movie years using IMDb
-def validate_year(row, timeout=0.5):
+def validate_year(row, timeout=0.1):
     title = row['Title']
     original_year = row['Year']
     ia = IMDb()
@@ -48,8 +48,9 @@ def validate_year(row, timeout=0.5):
         pass
     return original_year
 
-def validate_years(df):
+def validate_years(df, max_time=20):
     validated_years = []
+    start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
     total = len(df)
     facts = [
@@ -76,15 +77,17 @@ def validate_years(df):
     def update_progress(result, fact):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
-        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: \n\n{fact}")
+        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: {fact}")
         time.sleep(8)
         fact_placeholder.empty()
 
     with ThreadPoolExecutor(max_workers=30) as executor:  # Increase max_workers for faster execution
         futures = {executor.submit(validate_year, row): row for _, row in df.iterrows()}
         for i, future in enumerate(as_completed(futures)):
+            if time.time() - start_time > max_time:
+                break
             try:
-                result = future.result(timeout=0.05)
+                result = future.result(timeout=0.1)
             except (TimeoutError, Exception):
                 result = None
             fact = facts[i % len(facts)]
@@ -119,7 +122,7 @@ def main():
     
     # Validate years for Nicolas Cage movies
     start_time = time.time()
-    cage_movies = validate_years(cage_movies)
+    cage_movies = validate_years(cage_movies, max_time=20)
     end_time = time.time()
     st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
 
@@ -275,7 +278,7 @@ def main():
     ax1.set_ylabel('Average Rating')
     ax2.set_ylabel('Total Review Count')
     ax1.set_xlabel('Year Interval')
-    ax1.set_title(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
+    ax1.setTitle(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
 
     for i, (x, y) in enumerate(zip(avg_rating_reviews_by_interval.index, avg_rating_reviews_by_interval['Rating'])):
         ax1.text(i, y + 0.1, f'{y:.1f}', color='black', ha='center')
