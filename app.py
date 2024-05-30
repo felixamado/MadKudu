@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from imdb import IMDb, IMDbDataAccessError
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 import time
 
 # Virtual environment setup instructions
@@ -83,7 +83,10 @@ def validate_years(df):
     with ThreadPoolExecutor(max_workers=30) as executor:  # Increase max_workers for faster execution
         futures = {executor.submit(validate_year, row): row for _, row in df.iterrows()}
         for i, future in enumerate(as_completed(futures, timeout=20)):
-            result = future.result()
+            try:
+                result = future.result()
+            except TimeoutError:
+                result = None
             fact = facts[i % len(facts)]
             update_progress(result, fact)
 
@@ -94,7 +97,7 @@ def validate_years(df):
 
 # Create a new column for 5-year intervals
 def create_year_intervals(df):
-    df = df.dropna(subset=['Year'])  # Drop rows where 'Year' is NaN
+    df = df.dropna(subset(['Year']))  # Drop rows where 'Year' is NaN
     df['Year Interval'] = (df['Year'] // 5) * 5
     df['Year Interval'] = df['Year Interval'].astype(int)
     return df
