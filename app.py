@@ -38,11 +38,12 @@ def validate_year(row):
     try:
         movies = ia.search_movie(title)
         if movies:
-            movie = movies[0]
-            ia.update(movie)
-            year = movie.get('year')
-            if year and year != original_year:
-                return year
+            for movie in movies:
+                ia.update(movie)
+                if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
+                    year = movie.get('year')
+                    if year and year != original_year:
+                        return year
     except IMDbDataAccessError as e:
         st.error(f"Error accessing data for {title}: {e}")
     return None
