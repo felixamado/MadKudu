@@ -71,13 +71,7 @@ def validate_years(df, max_time=25):
             update_progress(result if result is not None else futures[future]['Year'])
 
     # Ensure all rows are processed
-    if len(validated_years) < total:
-        validated_years.extend(df['Year'][len(validated_years):])
-
-    df['Validated Year'] = validated_years
-    df['Year'] = df['Validated Year']  # Update Year column with validated years
-    df.drop(columns=['Validated Year'], inplace=True)
-    return df
+    
 
 
 
