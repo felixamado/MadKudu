@@ -3,12 +3,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from imdb import IMDb
+from concurrent.futures import ThreadPoolExecutor
+import time
 
 # Virtual environment setup instructions
 st.sidebar.title('Setup Instructions')
 st.sidebar.write("""
 1. Create a virtual environment: `python -m venv env`
-2. Activate the virtual environment: `env\\Scripts\\activate` (Windows) or `source env/bin/activate` (Mac/Linux)
+2. Activate the virtual environment: `source env/bin/activate` (Mac/Linux) or `env\\Scripts\\activate` (Windows)
 3. Install dependencies: `pip install -r requirements.txt`
 4. Run the Streamlit app: `streamlit run app.py`
 """)
@@ -28,13 +30,25 @@ def clean_data(df):
     df['Review Count'] = pd.to_numeric(df['Review Count'], errors='coerce')
     return df
 
-# Filter rows where Nicolas Cage is mentioned in the Cast
-def filter_cage_movies(df):
-    return df[df['Cast'].str.contains('Nicolas Cage', case=False, na=False)].copy()
+# Validate movie years using IMDb
+def validate_year(title):
+    ia = IMDb()
+    movies = ia.search_movie(title)
+    if movies:
+        movie = movies[0]
+        ia.update(movie)
+        return movie.get('year')
+    return None
 
-# Remove duplicates based on Title and Year
-def remove_duplicates(df):
-    return df.drop_duplicates(subset=['Title', 'Year'])
+def validate_years(df):
+    ia = IMDb()
+    validated_years = []
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        for result in executor.map(validate_year, df['Title']):
+            validated_years.append(result)
+            st.progress(len(validated_years) / len(df['Title']))
+    df['Validated Year'] = validated_years
+    return df
 
 # Create a new column for 5-year intervals
 def create_year_intervals(df):
@@ -50,33 +64,22 @@ def calculate_decades(df):
     decades = (latest_year - earliest_year + 1) // 10
     return decades, earliest_year, latest_year
 
-# Validate movie years using IMDb
-def validate_years(df):
-    ia = IMDb()
-    validated_years = []
-    for title in df['Title']:
-        movies = ia.search_movie(title)
-        if movies:
-            movie = movies[0]
-            ia.update(movie)
-            year = movie.get('year')
-            validated_years.append(year)
-        else:
-            validated_years.append(None)
-    df['Validated Year'] = validated_years
-    return df
-
 # Main function to run the app
 def main():
     df = load_data('imdb-movies-dataset.csv')  # Ensure the file is in the same directory as this script
     df = clean_data(df)
 
-    cage_movies = filter_cage_movies(df)
-    cage_movies = remove_duplicates(cage_movies)
-    cage_movies = create_year_intervals(cage_movies)
+    # Filter rows where Nicolas Cage is mentioned in the Cast
+    cage_movies = df[df['Cast'].str.contains('Nicolas Cage', case=False, na=False)].copy()
     
-    # Validate years
-    cage_movies = validate_years(cage_movies)
+    # Validate years for Nicolas Cage movies
+    with st.spinner('Validating movie years against IMDb...'):
+        start_time = time.time()
+        cage_movies = validate_years(cage_movies)
+        end_time = time.time()
+        st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
+
+    cage_movies = create_year_intervals(cage_movies)
 
     # Calculate decades
     decades, earliest_year, latest_year = calculate_decades(cage_movies)
