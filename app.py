@@ -31,57 +31,44 @@ def clean_data(df):
     df['Review Count'] = pd.to_numeric(df['Review Count'], errors='coerce')
     return df
 
-# Function to validate movie years using IMDb
-# Function to validate movie years using IMDb
-def validate_year(title, original_year):
+# Function to validate if Nicolas Cage is in the movie using IMDb
+def validate_cage_in_movie(title):
     ia = IMDb()
     try:
         movies = ia.search_movie(title)
-        if movies:
-            for movie in movies:
-                ia.update(movie)
-                if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
-                    year = movie.get('year')
-                    if year and year != original_year:
-                        return year
+        for movie in movies:
+            ia.update(movie)
+            if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
+                return movie
     except (IMDbDataAccessError, Exception) as e:
         st.warning(f"Error accessing IMDb for {title}: {e}")
-    return original_year
+    return None
 
-# Function to validate years for a DataFrame
-def validate_years(df, max_time=250):
-    validated_years = []
+# Function to filter Nicolas Cage movies for a DataFrame
+def filter_cage_movies(df, max_time=250):
+    cage_movies = []
     start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
     total = len(df)
     
-    def update_progress(result):
-        validated_years.append(result)
-        progress_bar.progress(len(validated_years) / total)
+    def update_progress():
+        progress_bar.progress(len(cage_movies) / total)
     
     with ThreadPoolExecutor(max_workers=50) as executor:  # Increase max_workers for faster execution
-        futures = {executor.submit(validate_year, row['Title'], row['Year']): row for _, row in df.iterrows()}
-        for i, future in enumerate(as_completed(futures)):
+        futures = {executor.submit(validate_cage_in_movie, row['Title']): row for _, row in df.iterrows()}
+        for future in as_completed(futures):
             if time.time() - start_time > max_time:
-                st.warning("Validation process stopped due to time constraints. Remaining values will use the original data.")
+                st.warning("Filtering process stopped due to time constraints. Only movies validated so far will be used.")
                 break
             try:
                 result = future.result(timeout=0.1)
+                if result:
+                    cage_movies.append(futures[future])
             except (TimeoutError, Exception):
-                result = None
-            update_progress(result if result is not None else futures[future]['Year'])
+                continue
+            update_progress()
 
-    # Ensure all rows are processed
-    if len(validated_years) < total:
-        validated_years.extend(df['Year'][len(validated_years):])
-
-    df['Validated Year'] = validated_years
-    df['Year'] = df['Validated Year']  # Update Year column with validated years
-    df.drop(columns=['Validated Year'], inplace=True)
-    return df
-
-
-
+    return pd.DataFrame(cage_movies)
 
 # Function to display fun facts
 def display_fun_facts():
@@ -130,18 +117,15 @@ def main():
     df = load_data('imdb-movies-dataset.csv')  # Load the dataset
     df = clean_data(df)  # Clean and normalize the data
 
-    # Filter rows where Nicolas Cage is mentioned in the Cast
-    cage_movies = df[df['Cast'].str.contains('Nicolas Cage', case=False, na=False)].copy()
-    
     # Start the fun facts display in a separate thread
     fun_facts_thread = threading.Thread(target=display_fun_facts)
     fun_facts_thread.start()
 
-    # Validate years for Nicolas Cage movies
+    # Filter Nicolas Cage movies
     start_time = time.time()
-    cage_movies = validate_years(cage_movies, max_time=20)
+    cage_movies = filter_cage_movies(df, max_time=20)
     end_time = time.time()
-    st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
+    st.success(f'Filtering completed in {end_time - start_time:.2f} seconds.')
 
     cage_movies = create_year_intervals(cage_movies)  # Create year intervals
 
@@ -213,7 +197,8 @@ def main():
 
     # Subheader and description for top-rated movies
     st.subheader('Top Rated Movies')
-    st.write("Nicolas Cage has undoubtedly delivered some stellar performances. Here are the top-rated movies starring Nicolas Cage.")
+    st.write("Nicolas Cage has undoubtedly delivered some stellar performances. Here are the top-rated movies starring
+ Nicolas Cage.")
     top_rated = cage_movies.sort_values(by='Rating', ascending=False).head(10)
     top_rated['Year'] = top_rated['Year'].astype(int)
     top_rated['Rating'] = top_rated['Rating'].round(1)
