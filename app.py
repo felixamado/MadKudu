@@ -42,7 +42,6 @@ def validate_year(title, original_year):
                 if 'Nicolas Cage' in [person['name'] for person in movie.get('cast', [])]:
                     year = movie.get('year')
                     if year and year != original_year:
-                        st.write(f"Updated {title}: {original_year} -> {year}")
                         return year
     except (IMDbDataAccessError, Exception) as e:
         st.warning(f"Error accessing IMDb for {title}: {e}")
@@ -139,11 +138,9 @@ def main():
 
     # Validate years for Nicolas Cage movies
     start_time = time.time()
-    cage_movies = validate_years(cage_movies, max_time=20)
+    cage_movies = validate_years(cage_movies, max_time=25)
     end_time = time.time()
     st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
-
-    st.write(cage_movies[['Title', 'Year']])  # Display the updated years to verify
 
     cage_movies = create_year_intervals(cage_movies)  # Create year intervals
 
