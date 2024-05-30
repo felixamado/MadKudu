@@ -44,7 +44,7 @@ def create_year_intervals(df):
 
 # Main function to run the app
 def main():
-    df = load_data('/mnt/data/imdb-movies-dataset.csv')  # Adjust the path to your dataset
+    df = load_data('imdb-movies-dataset.csv')  # Ensure the file is in the same directory as this script
     df = clean_data(df)
 
     cage_movies = filter_cage_movies(df)
