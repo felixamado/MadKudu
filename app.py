@@ -5,6 +5,7 @@ import seaborn as sns
 from imdb import IMDb, IMDbDataAccessError
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 import time
+import threading
 
 # Sidebar: Virtual environment setup instructions
 st.sidebar.title('Setup Instructions')
@@ -21,7 +22,6 @@ def load_data(file_path):
     return pd.read_csv(file_path)
 
 # Function to clean and normalize data
-# This function standardizes the capitalization and removes extra spaces from the 'Title', 'Genre', 'Director', and 'Cast' columns.
 def clean_data(df):
     df['Title'] = df['Title'].str.lower().str.strip().str.title()
     df['Genre'] = df['Genre'].str.lower().str.strip().str.title().str.split(',').str[0]
@@ -32,7 +32,6 @@ def clean_data(df):
     return df
 
 # Function to validate movie years using IMDb
-# It attempts to match movie titles with their corresponding release years, specifically checking for Nicolas Cage's movies.
 def validate_year(title, original_year):
     ia = IMDb()
     try:
@@ -49,12 +48,35 @@ def validate_year(title, original_year):
     return original_year
 
 # Function to validate years for a DataFrame
-# This function validates the years for movies starring Nicolas Cage within a specified time limit, displaying progress and fun facts.
 def validate_years(df, max_time=25):
     validated_years = []
     start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
     total = len(df)
+
+    with ThreadPoolExecutor(max_workers=50) as executor:  # Increase max_workers for faster execution
+        futures = {executor.submit(validate_year, row['Title'], row['Year']): row for _, row in df.iterrows()}
+        for future in as_completed(futures):
+            if time.time() - start_time > max_time:
+                st.warning("Validation process stopped due to time constraints. Remaining values will use the original data.")
+                break
+            try:
+                result = future.result(timeout=0.1)
+            except (TimeoutError, Exception):
+                result = None
+            validated_years.append(result if result is not None else futures[future]['Year'])
+            progress_bar.progress(len(validated_years) / total)
+
+    if len(validated_years) < total:
+        validated_years.extend(df['Year'][len(validated_years):])
+
+    df['Validated Year'] = validated_years
+    df['Year'] = df['Validated Year'].combine_first(df['Year'])
+    df.drop(columns=['Validated Year'], inplace=True)
+    return df
+
+# Function to display fun facts
+def display_fun_facts():
     facts = [
         "He bought two king cobras, and this ended poorly. He was dismayed to find that the snakes kept trying to attack him, and then neighbors complained till he gave them up.",
         "He came to a fan's defense when Vince Neil attacked her. Attacked her physically, that is. Though, Cage may also have been doing this for Neil's sake.",
@@ -76,36 +98,12 @@ def validate_years(df, max_time=25):
 
     fact_placeholder = st.empty()
 
-    def update_progress(result, fact):
-        validated_years.append(result)
-        progress_bar.progress(len(validated_years) / total)
-        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: \n\n{fact}")
-        time.sleep(2)
+    for fact in facts:
+        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts: \n\n{fact}")
+        time.sleep(9)
         fact_placeholder.empty()
 
-    with ThreadPoolExecutor(max_workers=50) as executor:  # Increase max_workers for faster execution
-        futures = {executor.submit(validate_year, row['Title'], row['Year']): row for _, row in df.iterrows()}
-        for i, future in enumerate(as_completed(futures)):
-            if time.time() - start_time > max_time:
-                st.warning("Validation process stopped due to time constraints. Remaining values will use the original data.")
-                break
-            try:
-                result = future.result(timeout=0.1)
-            except (TimeoutError, Exception):
-                result = None
-            fact = facts[i % len(facts)]
-            update_progress(result if result is not None else futures[future]['Year'], fact)
-
-    if len(validated_years) < total:
-        validated_years.extend(df['Year'][len(validated_years):])
-
-    df['Validated Year'] = validated_years
-    df['Year'] = df['Validated Year'].combine_first(df['Year'])
-    df.drop(columns=['Validated Year'], inplace=True)
-    return df
-
 # Function to create year intervals
-# This function groups the 'Year' column into 5-year intervals.
 def create_year_intervals(df):
     df = df.dropna(subset=['Year'])  # Drop rows where 'Year' is NaN
     df['Year Interval'] = (df['Year'] // 5) * 5
@@ -127,11 +125,18 @@ def main():
     # Filter rows where Nicolas Cage is mentioned in the Cast
     cage_movies = df[df['Cast'].str.contains('Nicolas Cage', case=False, na=False)].copy()
     
+    # Start the fun facts display in a separate thread
+    fun_facts_thread = threading.Thread(target=display_fun_facts)
+    fun_facts_thread.start()
+
     # Validate years for Nicolas Cage movies
     start_time = time.time()
     cage_movies = validate_years(cage_movies, max_time=20)
     end_time = time.time()
     st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
+
+    # Wait for the fun facts thread to complete
+    fun_facts_thread.join()
 
     cage_movies = create_year_intervals(cage_movies)  # Create year intervals
 
@@ -234,12 +239,12 @@ def main():
     # Subheader and description for top 3 genres ranked by ratings
     st.subheader('Top 3 Genres Ranked by Ratings')
     st.write("Let's see how the top 3 genres for Nicolas Cage's movies rank based on their average ratings and average votes per movie.")
-    top_genge_ratings_votes = cage_movies[cage_movies['Genre'].isin(top_genres)].groupby('Genre').agg({'Rating': 'mean', 'Votes': 'mean'}).loc[top_genres]
+    top_genre_ratings_votes = cage_movies[cage_movies['Genre'].isin(top_genres)].groupby('Genre').agg({'Rating': 'mean', 'Votes': 'mean'}).loc[top_genres]
 
     fig, ax1 = plt.subplots()
-    sns.barplot(x=top_genge_ratings_votes.index, y=top_genge_ratings_votes['Rating'], ax=ax1, palette='viridis')
+    sns.barplot(x=top_genre_ratings_votes.index, y=top_genre_ratings_votes['Rating'], ax=ax1, palette='viridis')
     ax2 = ax1.twinx()
-    sns.lineplot(x=top_genre_ratings_votes.index, y=top_genge_ratings_votes['Votes'], ax=ax2, color='red', marker='o', linestyle='-', linewidth=2)
+    sns.lineplot(x=top_genre_ratings_votes.index, y=top_genre_ratings_votes['Votes'], ax=ax2, color='red', marker='o', linestyle='-', linewidth=2)
 
     ax1.set_ylabel('Average Rating')
     ax2.set_ylabel('Average Votes per Movie')
@@ -249,7 +254,7 @@ def main():
     for i, v in enumerate(top_genre_ratings_votes['Rating']):
         ax1.text(i, v + 0.1, f'{v:.1f}', color='black', ha='center')
 
-    for i, v in enumerate(top_genge_ratings_votes['Votes']):
+    for i, v in enumerate(top_genre_ratings_votes['Votes']):
         ax2.text(i, v, f'{int(v)}', color='red', ha='center')
 
     st.pyplot(fig)
@@ -293,7 +298,7 @@ def main():
     ax1.set_ylabel('Average Rating')
     ax2.set_ylabel('Total Review Count')
     ax1.set_xlabel('Year Interval')
-    ax1.setTitle(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
+    ax1.set_title(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
 
     for i, (x, y) in enumerate(zip(avg_rating_reviews_by_interval.index, avg_rating_reviews_by_interval['Rating'])):
         ax1.text(i, y + 0.1, f'{y:.1f}', color='black', ha='center')
