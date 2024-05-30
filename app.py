@@ -135,9 +135,6 @@ def main():
     end_time = time.time()
     st.success(f'Validation completed in {end_time - start_time:.2f} seconds.')
 
-    # Wait for the fun facts thread to complete
-    fun_facts_thread.join()
-
     cage_movies = create_year_intervals(cage_movies)  # Create year intervals
 
     # Calculate decades
