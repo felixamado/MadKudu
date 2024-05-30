@@ -143,7 +143,7 @@ def main():
     
     # Display title and image
     st.title(f'Nicolas Cage: A Journey Through Film Spanning {decade_text}')
-        st.image("https://m.media-amazon.com/images/M/MV5BMzY5YTYwODAtZjY4Yi00OGY5LTk0MTAtNWRhNDc1NWQ4ZGI1XkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_QL75_UX500_CR0,0,500,281_.jpg", caption="Nicolas Cage iconic performances")
+    st.image("https://m.media-amazon.com/images/M/MV5BMzY5YTYwODAtZjY4Yi00OGY5LTk0MTAtNWRhNDc1NWQ4ZGI1XkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_QL75_UX500_CR0,0,500,281_.jpg", caption="Nicolas Cage iconic performances")
     st.write(f"Nicolas Cage is one of Hollywood's most enigmatic and versatile actors. With a career spanning {decade_text} (from {earliest_year} to {latest_year}), he's played a wide range of characters in a variety of genres.")
     # This section sets the stage with a title and image, giving users an engaging introduction to the analysis.
 
