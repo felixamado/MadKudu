@@ -46,7 +46,7 @@ def validate_year(row):
                         return year
     except IMDbDataAccessError as e:
         st.error(f"Error accessing data for {title}: {e}")
-    return None
+    return original_year
 
 def validate_years(df):
     validated_years = []
@@ -80,7 +80,7 @@ def validate_years(df):
         time.sleep(8)
         fact_placeholder.empty()
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=20) as executor:  # Increase max_workers for faster execution
         futures = [executor.submit(validate_year, row) for _, row in df.iterrows()]
         for i, future in enumerate(futures):
             result = future.result()
@@ -91,7 +91,6 @@ def validate_years(df):
     df['Year'] = df['Validated Year'].combine_first(df['Year'])
     df.drop(columns=['Validated Year'], inplace=True)
     return df
-
 
 # Create a new column for 5-year intervals
 def create_year_intervals(df):
@@ -273,7 +272,7 @@ def main():
     ax1.set_ylabel('Average Rating')
     ax2.set_ylabel('Total Review Count')
     ax1.set_xlabel('Year Interval')
-    ax1.set_title(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
+    ax1.setTitle(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
 
     for i, (x, y) in enumerate(zip(avg_rating_reviews_by_interval.index, avg_rating_reviews_by_interval['Rating'])):
         ax1.text(i, y + 0.1, f'{y:.1f}', color='black', ha='center')
