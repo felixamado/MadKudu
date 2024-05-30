@@ -69,26 +69,6 @@ def validate_year(row):
         st.error(f"Error accessing data for {title}: {e}")
     return None
 
-def show_facts():
-    root = tk.Tk()
-    root.title("Nicolas Cage Fun Facts")
-    root.geometry("800x200")
-    
-    fact_label = tk.Label(root, text="", wraplength=700, font=("Helvetica", 14), justify="center")
-    fact_label.pack(expand=True)
-    
-    def update_fact(index=0):
-        if index < len(facts):
-            fact_label.config(text=facts[index])
-            root.after(10000, update_fact, index + 1)
-        else:
-            root.quit()
-    
-    update_fact()
-    root.mainloop()
-
-show_facts()
-
 def validate_years(df):
     validated_years = []
     progress_bar = st.progress(0)  # Initialize a single progress bar
