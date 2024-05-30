@@ -38,6 +38,7 @@ def remove_duplicates(df):
 
 # Create a new column for 5-year intervals
 def create_year_intervals(df):
+    df = df.dropna(subset=['Year'])  # Drop rows where 'Year' is NaN
     df['Year Interval'] = (df['Year'] // 5) * 5
     df['Year Interval'] = df['Year Interval'].astype(int)
     return df
