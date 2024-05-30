@@ -58,7 +58,7 @@ def validate_years(df, max_time=25):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
     
-    with ThreadPoolExecutor(max_workers=50) as executor:  # Increase max_workers for faster execution
+    with ThreadPoolExecutor(max_workers=30) as executor:  # Increase max_workers for faster execution
         futures = {executor.submit(validate_year, row['Title'], row['Year']): row for _, row in df.iterrows()}
         for i, future in enumerate(as_completed(futures)):
             if time.time() - start_time > max_time:
