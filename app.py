@@ -48,7 +48,7 @@ def validate_year(row, timeout=0.001):
         pass
     return original_year
 
-def validate_years(df, max_time=20):
+def validate_years(df, max_time=25):
     validated_years = []
     start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
@@ -77,7 +77,7 @@ def validate_years(df, max_time=20):
     def update_progress(result, fact):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
-        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: \n\n {fact}")
+        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: {fact}")
         time.sleep(8)
         fact_placeholder.empty()
 
@@ -85,6 +85,7 @@ def validate_years(df, max_time=20):
         futures = {executor.submit(validate_year, row): row for _, row in df.iterrows()}
         for i, future in enumerate(as_completed(futures)):
             if time.time() - start_time > max_time:
+                st.warning("Validation process stopped due to time constraints. Remaining values will use the original data.")
                 break
             try:
                 result = future.result(timeout=0.1)
@@ -92,6 +93,9 @@ def validate_years(df, max_time=20):
                 result = None
             fact = facts[i % len(facts)]
             update_progress(result if result is not None else futures[future]['Year'], fact)
+
+    if len(validated_years) < total:
+        validated_years.extend(df['Year'][len(validated_years):])
 
     df['Validated Year'] = validated_years
     df['Year'] = df['Validated Year'].combine_first(df['Year'])
