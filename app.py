@@ -93,6 +93,12 @@ async def validate_years_async(df, max_time=25):
             await asyncio.sleep(8)  # To display facts for a while
             fact_placeholder.empty()
 
+    # Ensure the length of validated_years matches the length of the DataFrame
+    if len(validated_years) < len(df):
+        validated_years.extend(df['Year'][len(validated_years):])
+    elif len(validated_years) > len(df):
+        validated_years = validated_years[:len(df)]
+
     df['Validated Year'] = validated_years
     df['Year'] = df['Validated Year'].combine_first(df['Year'])
     df.drop(columns=['Validated Year'], inplace=True)
