@@ -49,10 +49,19 @@ def validate_year(row):
 
 def validate_years(df):
     validated_years = []
+    progress_bar = st.progress(0)  # Initialize a single progress bar
+    total = len(df)
+
+    def update_progress(result):
+        validated_years.append(result)
+        progress_bar.progress(len(validated_years) / total)
+
     with ThreadPoolExecutor(max_workers=10) as executor:
-        for result in executor.map(validate_year, [row for _, row in df.iterrows()]):
-            validated_years.append(result)
-            st.progress(len(validated_years) / len(df))
+        futures = [executor.submit(validate_year, row) for _, row in df.iterrows()]
+        for future in futures:
+            result = future.result()
+            update_progress(result)
+
     df['Validated Year'] = validated_years
     df['Year'] = df['Validated Year'].combine_first(df['Year'])
     df.drop(columns=['Validated Year'], inplace=True)
