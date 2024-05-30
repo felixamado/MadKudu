@@ -57,7 +57,7 @@ def validate_years(df):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
 
-    with ThreadPoolExecutor(max_workers=40) as executor:
+    with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(validate_year, row) for _, row in df.iterrows()]
         for future in futures:
             result = future.result()
