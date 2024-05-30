@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from imdb import IMDb, IMDbDataAccessError
-from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+from concurrent.futures import ThreadPoolExecutor
 import time
 
 # Virtual environment setup instructions
@@ -31,7 +31,7 @@ def clean_data(df):
     return df
 
 # Validate movie years using IMDb
-def validate_year(row, timeout=5):
+def validate_year(row):
     title = row['Title']
     original_year = row['Year']
     ia = IMDb()
@@ -44,16 +44,16 @@ def validate_year(row, timeout=5):
                     year = movie.get('year')
                     if year and year != original_year:
                         return year
-    except IMDbDataAccessError:
-        pass
-    return original_year
+    except IMDbDataAccessError as e:
+        st.error(f"Error accessing data for {title}: {e}")
+    return None
 
 def validate_years(df):
     validated_years = []
     progress_bar = st.progress(0)  # Initialize a single progress bar
     total = len(df)
     facts = [
-        "He bought two king cobras, and this ended poorly. He was dismayed to find that the snakes kept trying to attack him, and then neighbors complained till he gave them up.",
+        "He bought two king cobras, and this ended poorly. He was dismayed to find that the snakes kept trying to attacking him, and then neighbors complained till he gave them up.",
         "He came to a fan's defense when Vince Neil attacked her. Attacked her physically, that is. Though, Cage may also have been doing this for Neil's sake.",
         "Cage chooses his diet based on animals' mating habits. He avoids pork, because he says pigs have dirty sex, but he eats fish and poultry, since fish and birds mate respectably.",
         "He really wants to do a musical. So we put together some choices for which one would suit him best.",
@@ -71,22 +71,16 @@ def validate_years(df):
         "He once did magic mushrooms with his cat. Said Cage, the cat kept raiding the fridge, so he decided they must do shrooms together, resulting in an hours-long shared trip."
     ]
 
-    fact_placeholder = st.empty()
-
     def update_progress(result, fact):
         validated_years.append(result)
         progress_bar.progress(len(validated_years) / total)
-        fact_placeholder.info(f"Enjoy some Nic Cage's fun facts while I validate the data in IMDb: {fact}")
+        st.info(fact)
         #time.sleep(8)
-        fact_placeholder.empty()
 
-    with ThreadPoolExecutor(max_workers=30) as executor:  # Increase max_workers for faster execution
-        futures = {executor.submit(validate_year, row): row for _, row in df.iterrows()}
-        for i, future in enumerate(as_completed(futures, timeout=20)):
-            try:
-                result = future.result()
-            except TimeoutError:
-                result = None
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(validate_year, row) for _, row in df.iterrows()]
+        for i, future in enumerate(futures):
+            result = future.result()
             fact = facts[i % len(facts)]
             update_progress(result, fact)
 
@@ -97,7 +91,7 @@ def validate_years(df):
 
 # Create a new column for 5-year intervals
 def create_year_intervals(df):
-    df = df.dropna(subset(['Year']))  # Drop rows where 'Year' is NaN
+    df = df.dropna(subset=['Year'])  # Drop rows where 'Year' is NaN
     df['Year Interval'] = (df['Year'] // 5) * 5
     df['Year Interval'] = df['Year Interval'].astype(int)
     return df
@@ -143,7 +137,7 @@ def main():
     top_genre = genre_counts.idxmax()
 
     total_movies = len(cage_movies)
-    top_genge_count = cage_movies[cage_movies['Genre'] == top_genre].shape[0]
+    top_genre_count = cage_movies[cage_movies['Genre'] == top_genre].shape[0]
     first_movie = cage_movies.sort_values(by='Year').iloc[0]
     first_movie_year = int(first_movie['Year'])
     first_movie_title = first_movie['Title']
@@ -152,7 +146,7 @@ def main():
     upcoming_movies = df[(df['Year'] >= current_year + 1) & (df['Cast'].str.contains('Nicolas Cage', case=False, na=False))]
 
     summary_paragraph = f"""
-    He has performed in a total of {total_movies} movies. His main genre is {top_genre}, having been part of {top_genge_count} movies in this genre. 
+    He has performed in a total of {total_movies} movies. His main genre is {top_genre}, having been part of {top_genre_count} movies in this genre. 
     He first appeared in a movie in the year {first_movie_year}, with the title "{first_movie_title}". 
     """
 
@@ -221,9 +215,9 @@ def main():
     top_genre_ratings_votes = cage_movies[cage_movies['Genre'].isin(top_genres)].groupby('Genre').agg({'Rating': 'mean', 'Votes': 'mean'}).loc[top_genres]
 
     fig, ax1 = plt.subplots()
-    sns.barplot(x=top_genge_ratings_votes.index, y=top_genre_ratings_votes['Rating'], ax=ax1, palette='viridis')
+    sns.barplot(x=top_genre_ratings_votes.index, y=top_genre_ratings_votes['Rating'], ax=ax1, palette='viridis')
     ax2 = ax1.twinx()
-    sns.lineplot(x=top_genre_ratings_votes.index, y=top_genge_ratings_votes['Votes'], ax=ax2, color='red', marker='o', linestyle='-', linewidth=2)
+    sns.lineplot(x=top_genre_ratings_votes.index, y=top_genre_ratings_votes['Votes'], ax=ax2, color='red', marker='o', linestyle='-', linewidth=2)
 
     ax1.set_ylabel('Average Rating')
     ax2.set_ylabel('Average Votes per Movie')
@@ -275,7 +269,7 @@ def main():
     ax1.set_ylabel('Average Rating')
     ax2.set_ylabel('Total Review Count')
     ax1.set_xlabel('Year Interval')
-    ax1.setTitle(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
+    ax1.set_title(f'{top_genre} Genre: Ratings and Reviews by 5-Year Intervals')
 
     for i, (x, y) in enumerate(zip(avg_rating_reviews_by_interval.index, avg_rating_reviews_by_interval['Rating'])):
         ax1.text(i, y + 0.1, f'{y:.1f}', color='black', ha='center')
