@@ -84,7 +84,7 @@ def validate_years(df):
         futures = {executor.submit(validate_year, row): row for _, row in df.iterrows()}
         for i, future in enumerate(as_completed(futures)):
             try:
-                result = future.result(timeout=0.5)
+                result = future.result(timeout=0.05)
             except (TimeoutError, Exception):
                 result = None
             fact = facts[i % len(facts)]
