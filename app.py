@@ -49,7 +49,7 @@ def validate_cage_in_movie(title):
 # This function uses the IMDb API to verify if Nicolas Cage is part of the movie's cast, enhancing the dataset's accuracy.
 
 # Function to filter Nicolas Cage movies for a DataFrame
-def filter_cage_movies(df, max_time=250):
+def filter_cage_movies(df, max_time=25):
     cage_movies = []
     start_time = time.time()
     progress_bar = st.progress(0)  # Initialize a single progress bar
