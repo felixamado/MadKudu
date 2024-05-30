@@ -65,7 +65,7 @@ def validate_years(df, max_time=25):
                 st.warning("WARNING: Validation process stopped due to time constraints. Remaining values will use the original data, which could result in inacurrate facts.")
                 break
             try:
-                result = future.result(timeout=0.1)
+                result = future.result(timeout=1)
             except (TimeoutError, Exception):
                 result = None
             update_progress(result if result is not None else futures[future]['Year'])
